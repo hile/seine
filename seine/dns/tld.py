@@ -46,8 +46,15 @@ class TLDCache(list):
                     break
                 fdir = os.path.dirname(f)
                 if not os.path.isdir(fdir):
+                    self.log.debug('Trying to create %s and %s' % (fdir,f))
                     try:
                         os.makedirs(os.path.dirname(f))
+                    except IOError,(ecode,emsg): 
+                        continue
+                    except OSError,(ecode,emsg): 
+                        continue
+                if not os.path.isfile(f):
+                    try:
                         open(f,'w').write('\n')
                         os.unlink(f)
                         self.path = f
