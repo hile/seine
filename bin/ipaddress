@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+"""
+Simple wrapper to show some details for addresses given on command line.
+"""
+
+import sys,logging
+
+from seine.script import prepare,initialize,error
+from seine.address import IPv4Address,IPv6Address 
+from seine.url import HTTPRequest,HTTPRequestError
+
+# Template URLs to create links
+IPV4_ARIN_QUERY = 'http://whois.arin.net/rest/nets;q=%(ipaddress)s?showDetails=true&showARIN=false'
+IPV4_RIPE_QUERY = 'http://www.db.ripe.net/whois?form_type=simple&full_query_string=&searchtext=%(ipaddress)s&do_search=Search'
+
+parser = prepare(sys.argv)
+(opts,args) = initialize(parser)
+log = logging.getLogger('console')
+
+if len(args) == 0:
+    sys.exit(error(parser.get_usage()))
+
+for addr in args:
+    try:
+        addr = IPv4Address(addr)
+        if addr.bitmask <=30:
+            print """Address             %(ipaddress)s
+Broadcast           %(broadcast)s
+Netmask             %(netmask)s
+Invertmask          %(inverted_netmask)s
+Network             %(network)s
+Class               %(addressclass)s
+First Host          %(first)s
+Last Host           %(last)s""" % addr
+            print 'Available Hosts     %d' % len(addr)
+        else:
+            print """Address             %(ipaddress)s
+Netmask             %(netmask)s
+Invertmask          %(inverted_netmask)s
+Class               %(addressclass)s""" % addr
+
+        if opts.verbose:
+            print 'Address allocation details from web'
+            print '  ARIN %s' % IPV4_ARIN_QUERY % addr
+            print '  RIPE %s' % IPV4_RIPE_QUERY % addr
+
+    except ValueError:
+        try:
+            addr = IPv6Address(addr)
+            print """Address             %(address)s
+Network             %(network)s
+Mask                %(bitmask)s
+Bitstring           %(bitstring)s
+Network Bitstring   %(network_bitstring)s 
+Revnibbles (INT)    %(revnibbles_int)s 
+Revnibbles (ARPA)   %(revnibbles_arpa)s """ % addr
+        except ValueError:
+            print 'Address format not supported: %s' % addr
+            continue
+

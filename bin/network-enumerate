@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+"""
+Simple wrapper to enumerate addresses in a network. For IPv6, this is silly
+but who cares.
+"""
+
+import sys,logging
+
+from seine.script import prepare,initialize,error
+from seine.address import IPv4Address,IPv6Address
+from seine.dns.resolver import resolve_records,QueryError
+
+parser = prepare(sys.argv)
+parser.add_option('-r','--reverse-dns',action='store_true',help='Enumerate DNS Pointers')
+parser.add_option('-s','--dns-server',type='string',help='DNS Server for Queries')
+(opts,args) = initialize(parser)
+log = logging.getLogger('console')
+
+if len(args) == 0:
+    sys.exit(error(parser.get_usage()))
+
+if opts.dns_server:
+    try:
+        server = IPv4Address(opts.dns_server).ipaddress
+    except ValueError:
+        sys.exit(error('Invalid DNS server address: %s' % server))
+
+if opts.reverse_dns and not opts.dns_server:
+    sys.exit(error('DNS server IPv4 address must be provider to query reverse DNS'))
+
+for network in args:
+    try:
+        addr = IPv4Address(network)
+        if addr.bitmask >= 30:
+            sys.exit(error('Enumerating networks with mask > 29 does not make sense.'))
+        last = addr.last.next.address + 1
+        a = addr
+        while a.address<last:
+            if opts.reverse_dns:
+                try:
+                    response = resolve_records(a.dns_reverse_ptr,server,'PTR')
+                    ptrs = [str(r['target']) for r in response['results']]
+                    if len(ptrs)>0:
+                        print '%-16s %s' % (a.ipaddress,','.join(ptrs))
+                    else:
+                        log.info('%-16s no PTR records' % a.ipaddress)
+                except QueryError,e:
+                    sys.exit(error(e))
+            else:
+                print a.ipaddress
+            a = a.next
+    except ValueError:
+        try:
+            addr = IPv6Address(network)
+        except ValueError:
+            sys.exit(error('Unsupported address value: %s' % network))
+        last = int(addr.last.bitstring,16) + 1
+        a = addr
+        while int(a.bitstring,16)<last:
+            print '%s/%s' % (a.address,a.bitmask)
+            a = a.next
+
