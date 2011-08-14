@@ -225,6 +225,13 @@ class IPv4Address(object):
         last  = (self.address & self.mask) + (UINT_MAX &~ self.mask)
         return last-first
 
+    def __cmp__(self,other):
+        if self.address < other.address:
+            return -1
+        elif self.address > other.address:
+            return 1
+        return 0
+
     def __long__(self):
         """
         Return the integer representation for this IPv4 address
@@ -322,12 +329,13 @@ class IPv4Address(object):
         except AttributeError,e:
             raise KeyError('No such IPv4Address item: %s' % item)
 
-    def addressInNetwork(self,address):
+    def addressInNetwork(self,ip):
         """
         Tests if given IPv4 address is in range of this network, 
         including network and broadcast addresses
         """
-        ip = IPv4Address(address)
+        if type(ip) != IPv4Address:
+            ip = IPv4Address(ip)
         if self.bitmask == 0:
             return True
         if self.bitmask == 32 and ip.address != self.address:
@@ -593,6 +601,23 @@ class IPv6Address(dict):
             return self[attr]
         except KeyError:
             raise AttributeError('No such IPv6Address attribute: %s' % attr)
+
+    def addressInNetwork(self,value):
+        """
+        Tests if given IPv6 address is in range of this network, 
+        including network and broadcast addresses
+        """
+        if type(value) is not IPv6Address:
+            try:
+                value = IPv6Address(value)
+            except ValueError,e:
+                raise ValueError('Invalid IPv6Address: %s' % value)
+        value = int(value.bitstring,16)
+        first = int(self.network_bitstring,16)
+        last = int(self.network_bitstring,16)+2**(128-self.bitmask)-1
+        if value < first or value > last:
+            return False
+        return True
 
     def hostInNetwork(self,value):
         if type(value) is not IPv6Address:
