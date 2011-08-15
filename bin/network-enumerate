@@ -4,13 +4,26 @@ Simple wrapper to enumerate addresses in a network. For IPv6, this is silly
 but who cares.
 """
 
-import sys,logging
+import sys,os,logging
 
 from seine.script import prepare,initialize,error
 from seine.address import IPv4Address,IPv6Address
 from seine.dns.resolver import resolve_records,QueryError
 
 parser = prepare(sys.argv)
+parser.set_usage("""%s [options] <ipv4address|ipv6address>
+
+This script can be used to:
+- enumerate IPv4/IPv6 addresses in given address range
+- enumerate DNS reverse records for hosts in given address range
+
+The address should be given as CIDR IPv4 address or IPv6 address with bitmask. 
+You can give multiple targets on the command line, mixing IPv4 and IPv6
+addresses. 
+
+Currently DNS server address can be only given as IPv4 address.""" % 
+    os.path.basename(sys.argv[0])
+)
 parser.add_option('-r','--reverse-dns',action='store_true',help='Enumerate DNS Pointers')
 parser.add_option('-s','--dns-server',type='string',help='DNS Server for Queries')
 (opts,args) = initialize(parser)

@@ -3,7 +3,7 @@
 Simple wrapper to show some details for addresses given on command line.
 """
 
-import sys,logging
+import sys,os,logging
 
 from seine.script import prepare,initialize,error
 from seine.address import IPv4Address,IPv6Address 
@@ -14,6 +14,10 @@ IPV4_ARIN_QUERY = 'http://whois.arin.net/rest/nets;q=%(ipaddress)s?showDetails=t
 IPV4_RIPE_QUERY = 'http://www.db.ripe.net/whois?form_type=simple&full_query_string=&searchtext=%(ipaddress)s&do_search=Search'
 
 parser = prepare(sys.argv)
+parser.set_usage("""%s [options] <ipv4address|ipv6address>
+
+Debug tool to show some basic details for given IPv4 or IPv6 address or network. 
+You can give multiple addresses on the command line. """ % os.path.basename(sys.argv[0]))
 (opts,args) = initialize(parser)
 log = logging.getLogger('console')
 

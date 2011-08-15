@@ -3,12 +3,18 @@
 Example script how to use the subnet splitting classes.
 """
 
-import sys,logging
+import sys,os,logging
 
 from seine.script import prepare,initialize,error
 from seine.address import IPv4Address,IPv6Address,SubnetPrefixIterator
 
 parser = prepare(sys.argv)
+parser.set_usage("""%s [options] <ipv4network|ipv6network> <bitmask>
+
+Split the given CIDR or IPv6 network to subnets by given bitmask, which must be
+valid for the given split. You can split multiple networks with same command. """ % 
+    os.path.basename(sys.argv[0])
+)
 (opts,args) = initialize(parser)
 log = logging.getLogger('console')
 

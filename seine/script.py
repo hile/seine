@@ -22,7 +22,7 @@ def Interrupted(signum,frame):
     sys.exit(1)
 
 def error(message):
-    print 'ERROR: %s' % message
+    print message
     return 1
 
 class LogConfig(dict):
