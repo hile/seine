@@ -3,7 +3,7 @@
 import os,glob
 from setuptools import setup,find_packages
 
-VERSION='1.0.1'
+VERSION='1.0.2'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 setup(
@@ -13,7 +13,7 @@ setup(
     keywords = 'Network Utility Functions',
     url = 'https://github.com/hile/seine/downloads',
     zip_safe = False,
-    install_requires = [],
+    install_requires = ['setproctitle','dnspython','pyasn1','pysnmp>=4.0'],
     scripts = glob.glob('bin/*'),
     packages = ['seine','seine.dns'],
     author = 'Ilkka Tuohela', 
