@@ -3,7 +3,7 @@
 import os,glob
 from setuptools import setup,find_packages
 
-VERSION='1.0.2'
+VERSION='1.1'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 setup(
