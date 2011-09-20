@@ -29,6 +29,8 @@ except DNSCacheError,e:
     sys.exit(error(e))
 
 for name in args:
+    if name[0] == '.': name = name[1:]
+    if name[-1] == '.': name = name[:-1]
     if name in cache: 
         print 'Valid TLD: %s' % name
     else:

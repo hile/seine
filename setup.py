@@ -13,7 +13,7 @@ setup(
     keywords = 'Network Utility Functions',
     url = 'https://github.com/hile/seine/downloads',
     zip_safe = False,
-    install_requires = ['setproctitle','dnspython','pyasn1','pysnmp>=4.0'],
+    install_requires = ['setproctitle','dnspython'],
     scripts = glob.glob('bin/*'),
     packages = ['seine','seine.dns'],
     author = 'Ilkka Tuohela', 

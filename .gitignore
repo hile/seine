@@ -2,5 +2,6 @@
 *.pyc
 build/
 dist/
+seine-*.*/
 */*.egg-info/
 *.egg-info/

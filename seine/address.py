@@ -225,6 +225,19 @@ class IPv4Address(object):
         last  = (self.address & self.mask) + (UINT_MAX &~ self.mask)
         return last-first
 
+    def __hash__(self):
+        return long(self.address)
+
+    def __eq__(self,other):
+        if self.address == other.address:
+            return True
+        return False
+
+    def __ne__(self,other):
+        if self.address == other.address:
+            return False
+        return True
+
     def __cmp__(self,other):
         if self.address < other.address:
             return -1
@@ -527,6 +540,26 @@ class IPv6Address(dict):
             'revnibbles_int': '%s.ip6.int.' % revnibbles,
             'revnibbles_arpa': '%s.ip6.arpa.' % revnibbles,
         })
+
+    def __hash__(self):
+        return long(self.address)
+
+    def __eq__(self,other):
+        if self.address == other.address:
+            return True
+        return False
+
+    def __ne__(self,other):
+        if self.address == other.address:
+            return False
+        return True
+
+    def __cmp__(self,other):
+        if self.address < other.address:
+            return -1
+        elif self.address > other.address:
+            return 1
+        return 0
 
     def __repr__(self):
         return '%s/%s' % (self.address,self.bitmask)
