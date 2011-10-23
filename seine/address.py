@@ -424,7 +424,7 @@ class IPv4AddressRange(object):
 
     __slots__ = ['__next','first','last']
 
-    def __init__(self,first,last):
+    def __init__(self,first,last=None):
         """
         First address and last address must be valid IPv4 addresses, and first 
         address must be smaller than last address.
@@ -437,8 +437,21 @@ class IPv4AddressRange(object):
         invalid.
         """
         self.__next = 0
-        self.first = IPv4Address(first)
-        self.last = IPv4Address(last)
+        if last is not None:
+            self.first = IPv4Address(first)
+            self.last = IPv4Address(last)
+        else:
+            # Support nmap format like 1.2.3.1-254 for 1.2.3.1 to 1.2.3.254
+            try:
+                (start_ip,subnet_last) = first.split('-',1)
+                self.first = IPv4Address(start_ip)
+                last = '%s.%s' % (
+                    '.'.join(self.first.ipaddress.split('.')[:-1]),
+                    subnet_last
+                )
+                self.last = IPv4Address(last) 
+            except ValueError,e:
+                raise ValueError('Error parsing %s: %s' % (first,e))
 
         if self.last.address<self.first.address:
             raise ValueError('Invalid range: last address is smaller than first address')
