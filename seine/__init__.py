@@ -1,3 +1,3 @@
 
-__all__  = ['address','dns','log','proxyconfig','script','url']
+__all__  = ['address','dns','log','proxyconfig','script','snmp','url']
 

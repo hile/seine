@@ -19,6 +19,9 @@ package: clean
 modules:
 	python setup.py build
 
+register:
+	python setup.py register
+
 install_modules: modules
 	@echo "Installing python modules"
 	@python setup.py install

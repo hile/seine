@@ -74,6 +74,7 @@ class IPv4Address(object):
     address:   IPv4 address as long integer
     mask:      IPv4 netmask as long integer
     """
+
     def __init__(self,address,netmask=None,oldformat=False):
         """
         Parameters:
@@ -88,7 +89,7 @@ class IPv4Address(object):
             try:
                 (ip,mask) = address.split('/',1)
             except ValueError:
-                ip = address
+                ip = address.strip()
                 if netmask:
                     try:
                         netmask = self.__parseaddress__(netmask)
@@ -142,6 +143,7 @@ class IPv4Address(object):
         addresses to us but who knows...
         """
         value = str(value)
+               
         if value.count('.') == 3:
             dotted = []
             parts = value.split('.')
@@ -196,6 +198,16 @@ class IPv4Address(object):
                 return reduce(lambda x,y:x+y,[
                     (dotted[0]<<24),(dotted[1]<<16)
                 ])
+        elif value.count(' ') == 3:
+            # Try 'aa bb cc dd' format hex address conversion. Silly? Yes
+            dotted = []
+            try:
+                dotted = [int(x.strip(),16) for x in value.split(' ')]
+                return reduce(lambda x,y:x+y,[
+                    (dotted[0]<<24), (dotted[1]<<16), (dotted[2]<<8),(dotted[3]),
+                ])
+            except ValueError:
+                pass
         else:
             if not self.oldformat:
                 return self.__parsenumber__(value)
@@ -276,6 +288,11 @@ class IPv4Address(object):
             return self.__long2address__(self.address) 
         if item == 'bitstring':
             return '0x%x' % self.address
+        if item == 'hexbytes':
+            return map(lambda x:
+                '%02x' % int(x),
+                self.__long2address__(self.address).split('.')
+            )
         if item == 'addressclass':
             return self.__addressclass__()
         if item == 'bitmask': 
