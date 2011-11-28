@@ -2,6 +2,8 @@
 Classes to represent Ethernet, IPv4, IPv6 addresses and address ranges
 """
 
+import struct
+
 # Maximum value available with 32 bits
 UINT_MAX = 2**32-1
 U128_MAX = 2**128-1
@@ -42,7 +44,18 @@ def isEthernetMACAddress(value):
 class EthernetMACAddress(object):
     def __init__(self,address):
         try:
-            parts = map(lambda x: int(x,16), address.split(':',5))
+            if len(address) == 12:
+                parts = map(lambda x: 
+                    int(x,16), 
+                    [address[i:i+2] for i in range(0,len(address),2)]
+                )
+            elif len(address) == 6:
+                parts = struct.unpack('BBBBBB',str(address))
+            else:
+                parts = map(lambda x: 
+                    int(x,16), 
+                    address.split(':',5)
+                )
             for p in parts:
                 if p < 0 or p > 255:
                     raise ValueError
@@ -50,7 +63,7 @@ class EthernetMACAddress(object):
             raise ValueError('Not a Ethernet MAC address: %s' % address)
         self.address = ':'.join(['%02x'%p for p in parts])
 
-    def __str__(self):
+    def __repr__(self):
         return self.address
 
 class IPv4Address(object):
@@ -82,6 +95,8 @@ class IPv4Address(object):
         netmask: netmask in dot format or long integer
         """ 
         self.oldformat = oldformat
+        if len(address) == 4:
+            address = '.'.join(str(x) for x in struct.unpack('BBBB',str(address)))
         if type(address) in [int,long]:
             ip = address
             mask = 32

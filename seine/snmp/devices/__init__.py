@@ -3,5 +3,5 @@
 SNMP watcher client classes for various devices types
 """
 
-__all__ = ['printers']
+__all__ = ['network','printers','servers']
 

@@ -1,0 +1,74 @@
+#!/usr/bin/env python
+"""
+Show SNMP interface details
+"""
+
+import sys,os
+from optparse import OptionParser
+
+from seine.snmp.devices.network.interfaces import SNMPNetworkInterfaces
+from seine.snmp import SNMPError,SNMP_VERSIONS 
+from seine.snmp.client import SNMPClient,SNMPv1Auth,SNMPv2cAuth,SNMPv3Auth
+
+DEFAULT_CACHE_PATH = os.path.join(os.getenv('HOME'),'.snmp_index.cache')
+
+parser = OptionParser()
+parser.set_defaults(**{'cache_path': DEFAULT_CACHE_PATH})
+parser.add_option('-H','--host',help='SNMP host to connect')
+parser.add_option('-1',dest='snmpv1',action='store_true',help='Use SNMP v1')
+parser.add_option('-2',dest='snmpv2c',action='store_true',help='Use SNMP v2c')
+parser.add_option('-o','--octets',action='store_true',help='Show octet counters')
+parser.add_option('-p','--packets',action='store_true',help='Show packet counters')
+parser.add_option('-s','--summary',action='store_true',help='Show interface summary')
+parser.add_option('-u','--update-indexes',action='store_true',help='Update device interface index cache')
+parser.add_option('-C','--community',help='SNMP v1/v2c')
+parser.add_option('-f','--cache-path',help='SNMP v1/v2c')
+(opts,args) = parser.parse_args()
+
+if not opts.host:
+    print parser.get_usage()
+    sys.exit(1)
+
+if opts.snmpv2c and opts.community:
+    snmp_client = SNMPClient(opts.host,SNMPv2cAuth(opts.community))
+elif opts.snmpv1 and opts.community:
+    snmp_client = SNMPClient(opts.host,SNMPv1Auth(opts.community))
+else:
+    print parser.get_usage()
+    sys.exit(1)
+
+sni = SNMPNetworkInterfaces(snmp_client,index_cache_path=opts.cache_path)
+names = sni.interface_names()
+
+if opts.update_indexes:
+    sni.update_indexes()
+
+if len(args) == 0:
+    for index,details in names.items():
+        print details['name'] 
+
+for name in args:
+    try:
+        n = name.lower()
+        index = filter(lambda x:
+            n in [x['name'].lower(), x['description'].lower()],
+            names.values()
+        )[0]['index']
+    except IndexError:
+        print 'No such interface name: %s' % name
+        continue
+
+    print '\n' + names[index]['description'] 
+    if not opts.summary and opts.octets:
+        counters = sni.interface_octet_counters(index)[index]
+        for k,v in counters.items():
+            print '%20s %s' % (k,v)
+    if not opts.summary and opts.packets:
+        counters = sni.interface_packet_counters(index)[index]
+        for k,v in counters.items():
+            print '%20s %s' % (k,v)
+    if opts.summary:
+        details = sni.interface_details(index)
+        for k in sorted(filter(lambda x: x!='description', details.keys())):
+            print '%20s %s' % (k,details[k])
+

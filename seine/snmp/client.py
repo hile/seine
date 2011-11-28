@@ -106,11 +106,11 @@ class SNMPClient(object):
     """
     Wrapper for SNMP SET, GET and WALK requests
     """
-    __slots__ = ['trees','log','auth_client','target','port','timeout','retries']
 
     def __init__(self,address,auth,
                  port=DEFAULT_PORT,timeout=DEFAULT_TIMEOUT,
                  retries=DEFAULT_RETRIES):
+        self.address = address
         self.trees = {}
         self.log = logging.getLogger('modules')
         self.auth_client = auth
@@ -143,6 +143,8 @@ class SNMPClient(object):
             (e,status,index,varBinds) = CommandGenerator().setCmd(
                 self.auth_client.auth,self.target,varBinds
             )
+            if status != 0:
+                raise SNMPError('Error setting SNMP value')
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
