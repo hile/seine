@@ -10,12 +10,14 @@ import pysnmp.error as PySNMPError
 from pysnmp.proto import rfc1902
 
 from seine.snmp import SNMPError
+from seine.snmp.client import SNMPClient
 from seine.address import IPv4Address,EthernetMACAddress
 
 IF_STATUS_UP = 1 
 IF_STATUS_DOWN = 2
-
 IF_STATUS_CODES = [ None, IF_STATUS_UP, IF_STATUS_DOWN ]
+
+INTERFACE_IPV4_OID_PREFIX = '.1.3.6.1.2.1.3.1.1.3'
 
 NETWORK_OIDS_MAP = {
     'index': { 
@@ -168,54 +170,21 @@ NETWORK_OIDS_MAP = {
     },
 }
 
-INTERFACE_IPV4_OID_PREFIX = '.1.3.6.1.2.1.3.1.1.3'
+class SNMPNetworkInterfaces(SNMPClient):
+    def __init__(self,*args,**kwargs):
+        SNMPClient.__init__(self,oid_map=NETWORK_OIDS_MAP,*args,**kwargs)
 
-class SNMPInterfaceIndexCache(dict):
-    def __init__(self,path=None):
-        self.path = path
-        self.load()
-
-    def load(self):
-        if self.path is None or not os.path.isfile(self.path):
-            return
-        for host,opts in ConfigObj(self.path).items():
-            self[host] = dict(opts)
-
-    def save(self):
-        if self.path is None:   
-            return
-        c = ConfigObj()
-        for host,opts in self.items():
-            if len(opts)==0:
-                continue
-            if not c.has_key(host):
-                c[host] = {}
-            for index,details in opts.items():
-                index = str(index)
-                c[host][index] = details
-        c.write(open(self.path,'w'))
-
-class SNMPNetworkInterfaces(object):
-    def __init__(self,snmp_client,index_cache_path=None):
-        self.host = snmp_client.address
-        self.client = snmp_client
-        self.log = logging.getLogger('modules')
-
-        self.index_cache = SNMPInterfaceIndexCache(index_cache_path)
+    def update_indexes(self):
         self.indexes = {}
-        try:
-            for index,details in self.index_cache[self.host].items():
-                details['index'] = int(details['index'])
-                self.indexes[int(index)] = details
-        except KeyError,e:
-            pass
-
-    def __getattr__(self,attr):
-        if attr in NETWORK_OIDS_MAP.keys():
-            d = NETWORK_OIDS_MAP[attr]
-            oid = d['oid']
-            return [d['decode'](k,v) for k,v in self.client.walk(oid).items()]
-        raise AttributeError('No such GenericNetworkDevice attribute: %s' % attr)
+        self.log.info('Loading indexes')
+        for section in ['index','name','description']:
+            for k,v in getattr(self,section):
+                index = int(k.split('.')[-1])
+                if not self.indexes.has_key(index):
+                    self.indexes[index] = {}
+                self.indexes[index][section] = v
+        self.index_cache[self.address] = self.indexes
+        self.index_cache.save()
 
     def set_alias(self,ifindex,value):
         try:
@@ -228,26 +197,14 @@ class SNMPNetworkInterfaces(object):
         print oid
         try:
             value = rfc1902.OctetString(value)
-            self.client.set(oid,value)
+            self.set(oid,value)
         except SNMPError,emsg:
             raise ValueError('Error updating alias: %s' % emsg)
-
-    def update_indexes(self):
-        self.indexes = {}
-        self.log.info('Loading indexes')
-        for section in ['index','name','description']:
-            for k,v in getattr(self,section):
-                index = int(k.split('.')[-1])
-                if not self.indexes.has_key(index):
-                    self.indexes[index] = {}
-                self.indexes[index][section] = v
-        self.index_cache[self.host] = self.indexes
-        self.index_cache.save()
 
     def interface_ipv4_addresses(self,ifindex):
         if_oid = '.'.join([INTERFACE_IPV4_OID_PREFIX,str(ifindex)])
         addresses = []
-        for (oid,value) in self.client.walk(if_oid).items():
+        for (oid,value) in self.walk(if_oid).items():
             try:
                 addresses.append(IPv4Address(value))
             except ValueError:
@@ -279,7 +236,7 @@ class SNMPNetworkInterfaces(object):
             d = NETWORK_OIDS_MAP[k]
             oid = '.'.join([d['oid'],str(ifindex)])
             try:
-                (oid,value) = self.client.get(oid)
+                (oid,value) = self.get(oid)
                 try:
                     details[k] = d['decode'](oid,value)[1]
                 except AttributeError:

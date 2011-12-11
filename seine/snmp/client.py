@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys,socket,logging
+import sys,os,socket,logging
+from configobj import ConfigObj
 
 from pyasn1.error import PyAsn1Error,SubstrateUnderrunError,ValueConstraintError 
 from pysnmp.entity import config as snmpconfig
@@ -102,14 +103,44 @@ class SNMPv3Auth(SNMPAuth):
         except AttributeError:
             raise SNMPError('Protocol value must be a string')
 
+class SNMPIndexCache(dict):
+    def __init__(self,path=None):
+        self.path = path
+        self.load()
+
+    def load(self):
+        if self.path is None or not os.path.isfile(self.path):
+            return
+        for (k,opts) in ConfigObj(self.path).items():
+            self[k] = opts
+
+    def save(self):
+        if self.path is None:
+            return
+        c = ConfigObj()
+        for k,opts in self.items():
+            if len(opts) == 0:
+                continue
+            if not c.has_key(k):
+                c[k] = {}
+            for i,data in opts.items():
+                i = str(i)
+                c[k][i] = data
+        try:
+            c.write(open(self.path,'w'))
+        except OSError,(ecode,emsg):
+            raise SNMPError('Error writing index cache %s: %s' (self.path,emsg))
+        except IOError,(ecode,emsg):
+            raise SNMPError('Error writing index cache %s: %s' (self.path,emsg))
+
 class SNMPClient(object):
     """
     Wrapper for SNMP SET, GET and WALK requests
     """
 
     def __init__(self,address,auth,
-                 port=DEFAULT_PORT,timeout=DEFAULT_TIMEOUT,
-                 retries=DEFAULT_RETRIES):
+                 port=DEFAULT_PORT, timeout=DEFAULT_TIMEOUT, retries=DEFAULT_RETRIES,
+                 oid_map = {}, index_cache_path=None):
         self.address = address
         self.trees = {}
         self.log = logging.getLogger('modules')
@@ -125,6 +156,33 @@ class SNMPClient(object):
             raise SNMPError(e)
         except PyAsn1Error,e:
             raise SNMPError("ASN1 parsing error: %s" % e) 
+
+        self.oid_map = oid_map
+
+        self.index_cache = SNMPIndexCache(index_cache_path)
+        self.indexes = {}
+        try:
+            for (index,details) in self.index_cache[self.address].items():
+                if details.has_key('index'):
+                    details['index'] = int(details['index'])
+                self.indexes[int(index)] = details
+        except KeyError,emsg:
+            pass 
+
+    def __getattr__(self,attr):
+        if attr in self.oid_map.keys():
+            config = oid_map[attr]
+            oid = config['oid']
+            try:
+                return [
+                    config['decode'](k,v) for k,v in self.walk(oid).items()
+                ]
+            except AttributeError:
+                raise SNMPError('Invalid OID map dictionary for %s' % k)
+        raise AttributeError('No such SNMPClient attribute: %s' % attr)
+
+    def update_indexes(self):
+        raise NotImplementedError('Implement update_indexes in child class')
 
     def set(self,oid,snmp_value):
         """

@@ -95,7 +95,7 @@ class IPv4Address(object):
         netmask: netmask in dot format or long integer
         """ 
         self.oldformat = oldformat
-        if len(address) == 4:
+        if type(address) != int and len(address) == 4:
             address = '.'.join(str(x) for x in struct.unpack('BBBB',str(address)))
         if type(address) in [int,long]:
             ip = address

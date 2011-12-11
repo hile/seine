@@ -30,14 +30,16 @@ if not opts.host:
     sys.exit(1)
 
 if opts.snmpv2c and opts.community:
-    snmp_client = SNMPClient(opts.host,SNMPv2cAuth(opts.community))
+    auth = SNMPv2cAuth(opts.community)
 elif opts.snmpv1 and opts.community:
-    snmp_client = SNMPClient(opts.host,SNMPv1Auth(opts.community))
+    auth = SNMPv1Auth(opts.community)
 else:
     print parser.get_usage()
     sys.exit(1)
 
-sni = SNMPNetworkInterfaces(snmp_client,index_cache_path=opts.cache_path)
+sni = SNMPNetworkInterfaces(
+    address=opts.host,auth=auth,index_cache_path=opts.cache_path
+)
 names = sni.interface_names()
 
 if opts.update_indexes:
