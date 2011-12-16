@@ -4,6 +4,7 @@
 ifndef PREFIX
 	PREFIX:=/usr/local
 endif
+PACKAGE= $(shell basename ${PWD})
 VERSION= $(shell awk -F\' '/^VERSION/ {print $$2}' setup.py)
 
 clean:
@@ -11,16 +12,14 @@ clean:
 	rm -rf build dist *.egg-info */*.egg-info *.pyc */*.pyc
 
 package: clean
-	rm -rf seine-$(VERSION)
-	mkdir -p seine-$(VERSION)
-	for f in Makefile README.txt bin seine setup.py;do cp -R $$f seine-$(VERSION)/$$d;done
-	tar -zcf ../seine-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc seine-$(VERSION) 
-
-modules:
-	python setup.py build
+	mkdir -p ../packages/$(PACKAGE)
+	tar -zcf ../packages/$(PACKAGE)/$(PACKAGE)-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc .  
 
 register:
 	python setup.py register
+
+modules:
+	python setup.py build
 
 install_modules: modules
 	@echo "Installing python modules"

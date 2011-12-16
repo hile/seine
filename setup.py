@@ -11,7 +11,7 @@ setup(
     version = VERSION,
     license = 'PSF',
     keywords = 'Network Utility Functions',
-    url = 'https://github.com/hile/seine/downloads',
+    url = 'http://tuohela.net/packages/seine',
     zip_safe = False,
     install_requires = ['setproctitle','dnspython'],
     scripts = glob.glob('bin/*'),
