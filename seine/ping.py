@@ -24,6 +24,10 @@ import icmp,ip,socket,select
 MAX_PACKETS = 1000
 PAYLOAD = 'seine pinger'
 
+class PingError(Exception):
+    def __str__(self):
+        return self.args[0]
+
 class PingSocket(object):
     """
     Wrapper for socket to use with ICMP PING packets.
@@ -40,11 +44,16 @@ class PingSocket(object):
         if source is not None:
             try:
                 self.socket.bind((source,socket.IPPROTO_ICMP))
-            except socket.error:
-                raise ValueError('Error binding to source address %s' % source)
+            except socket.error,(ecode,emsg):
+                raise PingError('Error binding to source address %s: %s' % (
+                    source,emsg
+                ))
 
     def sendto(self, packet):
-        self.socket.sendto(packet,self.target)
+        try:
+            self.socket.sendto(packet,self.target)
+        except socket.error,(ecode,emsg):
+            raise PingError(emsg)
 
     def recvfrom(self,maxbytes):
         return self.socket.recvfrom(maxbytes)
@@ -63,16 +72,6 @@ class Pinger(object):
         self.timeout = int(timeout)
         self.interval = int(interval)
         self.pid = os.getpid()
-
-        try:
-            (name,aliases,ipaddr) = socket.gethostbyaddr(target)
-        except socket.herror:
-            raise ValueError('Unknown host: %s' % target)
-
-        if aliases:
-            self.destinfo = (aliases[0], ipaddr[0])
-        else:
-            self.destinfo = (name, ipaddr[0])
         self.__reset_counters()
 
     def __reset_counters(self):
@@ -122,7 +121,7 @@ class Pinger(object):
             if packets < 0 or packets > MAX_PACKETS:
                 raise ValueError
         except ValueError:
-            raise ValueErro('Invalid number of packets: %s' % packets)
+            raise PingError('Invalid number of packets: %s' % packets)
 
         interval = float(self.interval)/1000
         timeout = float(self.timeout)/1000
@@ -132,7 +131,11 @@ class Pinger(object):
             if self.sent < packets and (last_sent+interval)<now:
                 self.__send_packet()
                 last_sent = now
-    
+
+            if len(self.times) == packets:
+                if filter(lambda t: t+timeout>now, self.times.values())==[]:
+                    break
+
             (rd,wt,er) = select.select([self.socket.socket],[],[],timeout)
             if not rd:
                 continue
@@ -158,9 +161,6 @@ class Pinger(object):
             if len(self.deltas)+len(self.timed_out) == packets:
                 break
 
-            if filter(lambda t: t+timeout>now, self.times.values())==[]:
-                break
-
         received = len(self.deltas)
         loss = (float(packets-received)/float(packets))*100
 
@@ -171,7 +171,6 @@ class Pinger(object):
                 'average': None,
                 'sent': packets, 
                 'received': len(self.deltas) + len(self.timed_out),
-                'timed_out': len(self.timed_out),
                 'packetloss': loss
             }
         else:
@@ -181,9 +180,17 @@ class Pinger(object):
                 'average': reduce(lambda x,y: x+y, self.deltas) / len(self.deltas),
                 'sent': packets, 
                 'received': received,
-                'timed_out': len(self.timed_out),
                 'packetloss': loss
             }
         self.__reset_counters()
         return summary
+
+if __name__ == '__main__':
+    import sys
+    #from seine.ping import Pinger,PingError
+    p = Pinger(sys.argv[1],timeout=100,interval=1000)
+    try:
+        print p.ping(3)
+    except PingError,emsg:
+        print emsg
 
