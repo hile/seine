@@ -59,15 +59,15 @@ class PingSocket(object):
         return self.socket.recvfrom(maxbytes)
 
 class Pinger(object):
+    """
+    Pinger instance.
+
+   If source address is not given, default chosen by OS is used.
+
+   Timeout is given as milliseconds, default value is 1000.
+   Packet interval is given as milliseconds, default value is 1000.
+    """
     def __init__(self, target, source=None,timeout=1000,interval=1000):
-        """
-        Initialize a pinger instance. 
-
-        If source address is not given, default chosen by OS is used.
-
-        Timeout is given as milliseconds, default value is 1000.
-        Packet interval is given as milliseconds, default value is 1000.
-        """
         self.socket = PingSocket(target,source)
         self.timeout = int(timeout)
         self.interval = int(interval)
@@ -75,6 +75,9 @@ class Pinger(object):
         self.__reset_counters()
 
     def __reset_counters(self):
+        """
+        Internal function to reset result counters between ping() calls
+        """
         self.last = 0
         self.sent = 0
         self.times = {}
@@ -109,11 +112,9 @@ class Pinger(object):
 
     def ping(self,packets=1):
         """
-        Send ping messages, as many as configured in __init__ with packets
-        parameter.
-        
-        If quiet is false, returns nothing: normally, uses get_summary()
-        to return ping results for host.
+        Send ping messages, as many as given with packets parameter.
+
+        Returns a dictionary of results, may raise PingError.
         """
 
         try:
