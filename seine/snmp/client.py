@@ -171,7 +171,7 @@ class SNMPClient(object):
 
     def __getattr__(self,attr):
         if attr in self.oid_map.keys():
-            config = oid_map[attr]
+            config = self.oid_map[attr]
             oid = config['oid']
             try:
                 return [
