@@ -10,6 +10,7 @@ import ConfigParser
 
 from seine.address import IPv4Address,IPv6Address
 from seine.dns.tld import TLDCache,DNSCacheError
+from seine.whois import WhoisError
 
 SERVER_CACHE = os.path.join(os.getenv('HOME'),'.whoisservers.cache')
 
@@ -18,10 +19,6 @@ SEARCH_DOMAIN = 'whois-servers.net'
 WHOIS_PORT = 43
 WHOIS_SERVER_TIMEOUT = 15
 WHOIS_BUFFER_SIZE = 1024
-
-class WhoisError(Exception):
-    def __str__(self):
-        return self.args[0]
 
 class WhoisServerCache(list):
     def __init__(self,cache_path=None):

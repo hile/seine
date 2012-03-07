@@ -8,7 +8,8 @@ import sys,os,logging,time
 import socket,select
 
 from seine.address import IPv4Address,IPv6Address
-from seine.whois.servers import WhoisServerCache,WhoisError
+from seine.whois import WhoisError
+from seine.whois.servers import WhoisServerCache
 from seine.whois.parsers import WhoisData
 
 WHOIS_PORT = 43

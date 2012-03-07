@@ -9,7 +9,9 @@ from seine.whois.servers import WhoisError
 
 TLD_FORMAT_MAP = {
     'gtld':     [ 'com', 'edu', 'gov', 'mil', 'net', 'org', 'arpa' ],
-    'uk':       ['uk'],
+    'ficora':   ['fi'],
+    'saudinic': ['sa'],
+    'nominet':  ['uk'],
 }
 
 class WhoisData(dict):
@@ -47,5 +49,11 @@ if __name__ == '__main__':
             print 'No such file: %s' % path
             continue
         wd = WhoisData(domain,open(path,'r').readlines())
-        print wd
+        for k in sorted(wd.keys()):
+            v = wd[k]
+            print k
+            if type(v) == list:
+                print '\t%s' % '\n\t'.join(v)
+            else:
+                print '\t%s' % v
 
