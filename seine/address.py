@@ -446,6 +446,41 @@ class IPv4Address(object):
         else:
             raise ValueError("Can't create reverse origin for mask %s" % self.bitmask)
 
+class IPv4AddressRangeList(list):
+    """
+    Parses nmap style address range specifications to IPv4AddressRange
+    objects. Supported example lines:
+        10.0.0.1-254
+        10.0.1,2,3.1-254
+        10,11.0.1,2,3-5.1-254
+    """
+    def __init__(self,value):
+        try:
+            (parts) = value.split('.',3)
+        except ValueError:
+            raise ValueError('Unsupported value: %s' % value)
+        part_lists = []
+        for i,field in enumerate(parts[:-1]):
+            part_lists.append([])
+            if field.count(',')>0:
+                values = field.split(',')
+            else:
+                values = [field]
+            for v in values:
+                if v.count('-')==1:
+                    start,end = [int(x) for x in v.split('-')]
+                    if (start>end): raise ValueError
+                    for j in range(start,end+1):
+                        part_lists[i].append(j)
+                else:
+                    part_lists[i].append(v)
+        part_lists.append(parts[-1].split(','))
+        for p1 in [str(x) for x in part_lists[0]]:
+            for p2 in [str(x) for x in part_lists[1]]:
+                for p3 in [str(x) for x in part_lists[2]]:
+                    for p4 in [str(x) for x in part_lists[3]]:
+                        self.append(IPv4AddressRange('.'.join([p1,p2,p3,p4])))
+
 class IPv4AddressRange(object):
     """
     Defines a IPv4 address range, which you can:
