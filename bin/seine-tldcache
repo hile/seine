@@ -1,37 +1,34 @@
 #!/usr/bin/env python
 
 import sys,os,logging
-from seine.script import prepare,initialize,error
 
+from systematic.shell import Script
 from seine.dns.tld import TLDCache,DNSCacheError
 
-parser = prepare(sys.argv)
-parser.set_usage("""%s [options] <tlds>
-
+USAGE = """
 Update a copy valid TLD names on local disk and query validity of TLD names.
 You can give multiple names to check on command line.
 
 Note: besides updating local cache, this is just a simple demonstration of the
-TLD cache code. It should be normally used from other modules.  """ % 
-    os.path.basename(sys.argv[0])
-)
-parser.add_option('-u','--update',action='store_true',help='Download latest version')
-parser.add_option('-f','--cache-file',type='string',help='TLD cache file')
-(opts,args) = initialize(parser)
-log = logging.getLogger('console')
+TLD cache code. It should be normally used from other modules."""
+
+script = Script(description=USAGE)
+script.add_argument('-u','--update',action='store_true',help='Download latest version')
+script.add_argument('-f','--cache-file',help='TLD cache file')
+script.add_argument('names',nargs='*',help='TLD names to validate')
+args = script.parse_args()
 
 try:
-    cache = TLDCache(path=opts.cache_file)
+    cache = TLDCache(path=args.cache_file)
     cache.load()
-    if opts.update:
+    if args.update:
         cache.update()
-except DNSCacheError,e:
-    sys.exit(error(e))
+except DNSCacheError,emsg:
+    script.exit(1,emsg)
 
-for name in args:
-    if name[0] == '.': name = name[1:]
-    if name[-1] == '.': name = name[:-1]
-    if name in cache: 
+for name in args.names:
+    name = name.strip('.')
+    if name in cache:
         print 'Valid TLD: %s' % name
     else:
         print 'Invalid TLD: %s' % name

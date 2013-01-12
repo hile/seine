@@ -5,58 +5,51 @@ Show SNMP interface details
 
 import os
 
-from seine.snmp import SNMPError,SNMP_VERSIONS 
-from seine.snmp.script import SNMPScript,SNMPScriptError
+from seine.snmp.script import SNMPScript,ScriptError
+from seine.snmp import SNMPError,SNMP_VERSIONS
 from seine.snmp.devices.network.interfaces import SNMPNetworkInterfaces
 
-DEFAULT_CACHE_PATH = os.path.join(os.getenv('HOME'),'.snmp_index.cache')
+DEFAULT_CACHE_PATH = os.path.expanduser('~/.snmp_interface_index.cache')
 
-script = SNMPScript()
-script.set_defaults(**{'cache_path': DEFAULT_CACHE_PATH})
-script.add_option('-o','--octets',action='store_true',help='Show octet counters')
-script.add_option('-a','--packets',action='store_true',help='Show packet counters')
-script.add_option('-s','--summary',action='store_true',help='Show interface summary')
-script.add_option('-u','--update-indexes',action='store_true',
-    help='Update device interface index cache'
-)
+script = SNMPScript(index_cache_path=DEFAULT_CACHE_PATH)
+script.add_argument('--octets',action='store_true',help='Show octet counters')
+script.add_argument('--packets',action='store_true',help='Show packet counters')
+script.add_argument('--summary',action='store_true',help='Show interface summary')
+script.add_argument('--update-indexes',action='store_true',help='Update device interface index cache')
+script.add_argument('interfaces',nargs='*',help='Interface names to query')
 try:
-    (opts,args) = script.parse_args()
-except SNMPScriptError,emsg:
-    script.get_usage()
+    args = script.parse_args()
+except ScriptError,emsg:
     script.exit(1,emsg)
-
 sni = SNMPNetworkInterfaces(**script.client_kwargs)
 names = sni.interface_names()
 
-if opts.update_indexes:
+if args.update_indexes:
     sni.update_indexes()
 
-if len(args) == 0:
+if not args.interfaces:
     for index,details in names.items():
-        print details['name'] 
+        script.message(details['name'])
 
-for name in args:
+for name in args.interfaces:
     try:
         n = name.lower()
-        index = filter(lambda x:
-            n in [x['name'].lower(), x['description'].lower()],
-            names.values()
-        )[0]['index']
+        index = filter(lambda x: n in [x['name'].lower(), x['description'].lower()], names.values() )[0]['index']
     except IndexError:
-        print 'No such interface name: %s' % name
+        script.message('No such interface name: %s' % name)
         continue
 
-    print '\n' + names[index]['description'] 
-    if not opts.summary and opts.octets:
+    script.message('\n' + names[index]['description'])
+    if not args.summary and args.octets:
         counters = sni.interface_octet_counters(index)[index]
         for k,v in counters.items():
-            print '%20s %s' % (k,v)
-    if not opts.summary and opts.packets:
+            script.message('%20s %s' % (k,v))
+    if not args.summary and args.packets:
         counters = sni.interface_packet_counters(index)[index]
         for k,v in counters.items():
-            print '%20s %s' % (k,v)
-    if opts.summary:
+            script.message('%20s %s' % (k,v))
+    if args.summary:
         details = sni.interface_details(index)
         for k in sorted(filter(lambda x: x!='description', details.keys())):
-            print '%20s %s' % (k,details[k])
+            script.message('%20s %s' % (k,details[k]))
 

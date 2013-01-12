@@ -5,32 +5,23 @@ Show SNMP interface details
 
 import sys,os
 
-from seine.snmp import SNMPError,SNMP_VERSIONS 
-from seine.snmp.script import SNMPScript,SNMPScriptError
-from seine.snmp.devices.process import SNMPProcessStatus 
+from seine.snmp.script import SNMPScript,ScriptError
+from seine.snmp import SNMPError,SNMP_VERSIONS
+from seine.snmp.devices.process import SNMPProcessStatus
+DEFAULT_CACHE_PATH = os.path.expanduser('~/.snmp_process_index.cache')
 
-DEFAULT_CACHE_PATH = os.path.join(os.getenv('HOME'),'.snmp_process.cache')
-
-script = SNMPScript()
-script.set_defaults(**{'cache_path': DEFAULT_CACHE_PATH})
-script.add_option('-u','--update-indexes',action='store_true',
-    help='Update device interface index cache'
-)
-try:
-    (opts,args) = script.parse_args()
-except SNMPScriptError,emsg:
-    script.get_usage()
-    script.exit(1,emsg)
+script = SNMPScript(index_cache_path=DEFAULT_CACHE_PATH)
+script.add_argument('--update-indexes',action='store_true', help='Update device process index cache')
+args = script.parse_args()
 
 processes = SNMPProcessStatus(**script.client_kwargs)
-
-if opts.update_indexes:
+if args.update_indexes:
     processes.update_indexes()
 
 values = sorted(processes.indexes.values(),lambda x,y: cmp(x['mem'],y['mem']))
 for v in filter(lambda v: v['mem']>0, values):
     try:
-        print '%(mem)8s %(name)s %(args)s' % v
+        script.message('%(mem)8s %(name)s %(args)s' % v)
     except KeyError,emsg:
-        print 'ERROR looking up "%s" from %s' % (emsg,v)
+        script.message('ERROR looking up "%s" from %s' % (emsg,v))
 

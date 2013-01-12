@@ -3,7 +3,7 @@
 import sys,os,socket,logging
 from configobj import ConfigObj
 
-from pyasn1.error import PyAsn1Error,SubstrateUnderrunError,ValueConstraintError 
+from pyasn1.error import PyAsn1Error,SubstrateUnderrunError,ValueConstraintError
 from pysnmp.entity import config as snmpconfig
 from pysnmp.entity.rfc3413.oneliner.cmdgen import CommunityData,UsmUserData
 from pysnmp.entity.rfc3413.oneliner.cmdgen import UdpTransportTarget
@@ -19,7 +19,7 @@ DEFAULT_VERSION='2c'
 DEFAULT_V3_AUTH_PROTOCOL = 'MD5'
 DEFAULT_V3_PRIV_PROTOCOL = 'DES'
 
-V3_AUTH_PROTOCOLS = {   
+V3_AUTH_PROTOCOLS = {
     'MD5': snmpconfig.usmHMACMD5AuthProtocol,
     'SHA': snmpconfig.usmHMACSHAAuthProtocol,
     'NOAUTH': snmpconfig.usmNoAuthProtocol,
@@ -61,19 +61,20 @@ class SNMPv2cAuth(SNMPAuth):
         return '%s SNMP v2c community %s' % (self.securityname,self.community)
 
 class SNMPv3Auth(SNMPAuth):
-    def __init__(self,username,password,
+    def __init__(self,username,authPass,privPass=None,
                  authProtocol=DEFAULT_V3_AUTH_PROTOCOL,
                  privProtocol=DEFAULT_V3_PRIV_PROTOCOL):
 
         SNMPAuth.__init__(self,'3')
         self.username = username
-        self.password = password
+        self.authPass = authPass
+        self.privPass = privPass is not None and privPass or authPass
 
         self.auth_name = authProtocol
         self.priv_name  = privProtocol
 
         self.auth = UsmUserData( self.username,
-            authKey=self.password,privKey=self.password,
+            authKey=self.authPass,privKey=privPass,
             authProtocol=self.__lookup_auth_protocol(authProtocol),
             privProtocol=self.__lookup_priv_protocol(privProtocol),
         )
@@ -89,17 +90,17 @@ class SNMPv3Auth(SNMPAuth):
         try:
             return V3_AUTH_PROTOCOLS[protocol.upper()]
         except KeyError:
-            raise SNMPError('Unknown SNMP authentication protocol: %s' % protocol) 
+            raise SNMPError('Unknown SNMP authentication protocol: %s' % protocol)
         except AttributeError:
-            raise SNMPError('Protocol value must be a string') 
-    
+            raise SNMPError('Protocol value must be a string')
+
     def __lookup_priv_protocol(self,protocol):
         if not protocol:
             protocol = DEFAULT_V3_PRIV_PROTOCOL
         try:
             return V3_PRIV_PROTOCOLS[protocol.upper()]
         except KeyError:
-            raise SNMPError('Unknown SNMP privacy protocol: %s' % protocol) 
+            raise SNMPError('Unknown SNMP privacy protocol: %s' % protocol)
         except AttributeError:
             raise SNMPError('Protocol value must be a string')
 
@@ -155,7 +156,7 @@ class SNMPClient(object):
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
-            raise SNMPError("ASN1 parsing error: %s" % e) 
+            raise SNMPError("ASN1 parsing error: %s" % e)
 
         self.oid_map = oid_map
 
@@ -167,7 +168,7 @@ class SNMPClient(object):
                     details['index'] = int(details['index'])
                 self.indexes[int(index)] = details
         except KeyError,emsg:
-            pass 
+            pass
 
     def __getattr__(self,attr):
         if attr in self.oid_map.keys():
@@ -186,7 +187,7 @@ class SNMPClient(object):
 
     def set(self,oid,snmp_value):
         """
-        Attempt setting the given OID to given value. Caller must prepare 
+        Attempt setting the given OID to given value. Caller must prepare
         snmp_value to correct rfc1902.* reference, for example:
             rfc1902.OctetString('new name').
         """
@@ -213,7 +214,7 @@ class SNMPClient(object):
         SNMP GET request to the server for given OID
         """
         try:
-            oid = tuple(map(lambda x: int(x), oid.lstrip('.').split('.'))) 
+            oid = tuple(map(lambda x: int(x), oid.lstrip('.').split('.')))
         except ValueError,e:
             raise SNMPError("Invalid OID: %s" % e)
 
@@ -236,7 +237,7 @@ class SNMPClient(object):
 
     def walk(self,oid):
         try:
-            oid = tuple(map(lambda x:int(x), oid.lstrip('.').split('.'))) 
+            oid = tuple(map(lambda x:int(x), oid.lstrip('.').split('.')))
         except ValueError,e:
             raise SNMPError("Invalid OID: %s" % e)
         try:
@@ -281,7 +282,7 @@ class SNMPClient(object):
                 self.trees[tree_id] = tree
             except SNMPError,emsg:
                 raise NagiosPluginError(str(emsg))
-        if indexed is True: 
+        if indexed is True:
             keys = sorted(tree.keys(),lambda x,y: cmp_oid(x,y))
             return [(k.lstrip('.').split('.')[-1],tree[k]) for k in keys]
         else:
@@ -298,14 +299,14 @@ class SNMPClient(object):
             raise NagiosPluginError(
                 'Trees for OIDs not fetched: %s' % ' '.join(missing)
             )
-        
+
         indexes = [self.tree_indexes(oid) for oid in oids.keys()]
         #if len(indexes)>1:
         #    raise NagiosPluginError('Indexes for given OIDs are different')
         results = dict((int(i),{}) for i in indexes[0])
         for i in indexes[0]:
             for oid in oids.keys():
-                k = filter(lambda k: 
+                k = filter(lambda k:
                     k.split('.')[-1] == i,
                     self.trees[oid].keys()
                 )[0]

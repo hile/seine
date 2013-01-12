@@ -3,67 +3,67 @@
 Simple wrapper to show some details for addresses given on command line.
 """
 
-import sys,os,logging
+import sys,os,logging,requests
 
-from seine.script import prepare,initialize,error
-from seine.address import IPv4Address,IPv6Address 
-from seine.url import HTTPRequest,HTTPRequestError
+from systematic.shell import Script,ScriptError
+from seine.address import IPv4Address,IPv6Address
 
 # Template URLs to create links
 IPV4_ARIN_QUERY = 'http://whois.arin.net/rest/nets;q=%(ipaddress)s?showDetails=true&showARIN=false'
 IPV4_RIPE_QUERY = 'http://www.db.ripe.net/whois?form_type=simple&full_query_string=&searchtext=%(ipaddress)s&do_search=Search'
 
-parser = prepare(sys.argv)
-parser.set_usage("""%s [options] <ipv4address|ipv6address>
-
-Debug tool to show some basic details for given IPv4 or IPv6 address or network. 
-You can give multiple addresses on the command line. """ % os.path.basename(sys.argv[0]))
-parser.add_option('-f','--fmt',help='Output formatter string')
-(opts,args) = initialize(parser)
-log = logging.getLogger('console')
-
-if len(args) == 0:
-    sys.exit(error(parser.get_usage()))
-
-for addr in args:
-    try:
-        addr = IPv4Address(addr)
-        if opts.fmt:
-            print opts.fmt % addr
-        
-        else:
-            if addr.bitmask <=30:
-                print """Address             %(ipaddress)s
+IPV4_DEFAULT_FORMATTING = """
+Address             %(ipaddress)s
 Broadcast           %(broadcast)s
 Netmask             %(netmask)s
 Invertmask          %(inverted_netmask)s
 Network             %(network)s
 Class               %(addressclass)s
 First Host          %(first)s
-Last Host           %(last)s""" % addr
-                print 'Available Hosts     %d' % len(addr)
-            else:
-                print """Address             %(ipaddress)s
+Last Host           %(last)s""".lstrip()
+IPV4_SHORT_NET_FORMATTING = """
+Address             %(ipaddress)s
 Netmask             %(netmask)s
 Invertmask          %(inverted_netmask)s
-Class               %(addressclass)s""" % addr
+Class               %(addressclass)s""".lstrip()
+IPV6_DEFAULT_FORMATTING = """
+Address             %(address)s
+Network             %(network)s
+Mask                %(bitmask)s
+Bitstring           %(bitstring)s
+Network Bitstring   %(network_bitstring)s
+Revnibbles (INT)    %(revnibbles_int)s
+Revnibbles (ARPA)   %(revnibbles_arpa)s""".lstrip()
 
-            if opts.verbose:
-                print 'Address allocation details from web'
-                print '  ARIN %s' % IPV4_ARIN_QUERY % addr
-                print '  RIPE %s' % IPV4_RIPE_QUERY % addr
+USAGE = """
+Debug tool to show some basic details for given IPv4 or IPv6 address or network.
+You can give multiple addresses on the command line."""
+script = Script(description=USAGE)
+script.add_argument('-v','--verbose',action='store_true',help='Output formatter string')
+script.add_argument('addresses',nargs='*',help='Addresses to process')
+args = script.parse_args()
+
+if not args.addresses:
+    script.exit(1,'No addresses provided')
+
+for addr in args.addresses:
+    try:
+        addr = IPv4Address(addr)
+        if addr.bitmask<=30:
+            script.message(IPV4_DEFAULT_FORMATTING % addr)
+        else:
+            script.message(IPV4_SHORT_NET_FORMATTING % addr)
+        if args.verbose:
+            script.message('Address allocation details from web')
+            script.message('  ARIN %s' % IPV4_ARIN_QUERY % addr)
+            script.message('  RIPE %s' % IPV4_RIPE_QUERY % addr)
 
     except ValueError:
         try:
             addr = IPv6Address(addr)
-            print """Address             %(address)s
-Network             %(network)s
-Mask                %(bitmask)s
-Bitstring           %(bitstring)s
-Network Bitstring   %(network_bitstring)s 
-Revnibbles (INT)    %(revnibbles_int)s 
-Revnibbles (ARPA)   %(revnibbles_arpa)s """ % addr
+            script.message(IPV6_DEFAULT_FORMATTING % addr)
+
         except ValueError:
-            print 'Address format not supported: %s' % addr
+            script.log.info('Address format not supported: %s' % addr)
             continue
 

@@ -5,30 +5,26 @@ Example script how to use the subnet splitting classes.
 
 import sys,os,logging
 
-from seine.script import prepare,initialize,error
+from systematic.shell import Script,ScriptError
 from seine.address import IPv4Address,IPv6Address,SubnetPrefixIterator
 
-parser = prepare(sys.argv)
-parser.set_usage("""%s [options] <ipv4network|ipv6network> <bitmask>
-
+USAGE = """
 Split the given CIDR or IPv6 network to subnets by given bitmask, which must be
-valid for the given split. You can split multiple networks with same command. """ % 
-    os.path.basename(sys.argv[0])
-)
-(opts,args) = initialize(parser)
-log = logging.getLogger('console')
-
-if len(args) != 2:
-    sys.exit(error(parser.get_usage()))
+valid for the given split. You can split multiple networks with same command.
+"""
+script = Script(description=USAGE)
+script.add_argument('address',help='Address range to split')
+script.add_argument('bitmask',type=int,help='Netmask of split networks')
+args = script.parse_args()
 
 try:
-    network = SubnetPrefixIterator(address=args[0],splitmask=args[1])
+    network = SubnetPrefixIterator(args.address,args.bitmask)
 except ValueError,e:
-    sys.exit(error(e))
+    script.exit(1,e)
 
 for splitnet in network:
     if type(splitnet) == IPv4Address:
-        print '%s/%s' % (splitnet.network,splitnet.bitmask) 
+        script.message('%s/%s' % (splitnet.network,splitnet.bitmask))
     elif type(splitnet) == IPv6Address:
-        print splitnet.network
+        script.message(splitnet.network)
 

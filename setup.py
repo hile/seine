@@ -13,7 +13,7 @@ setup(
     keywords = 'Network Utility Functions',
     url = 'http://tuohela.net/packages/seine',
     zip_safe = False,
-    install_requires = ['setproctitle','dnspython','pyip'],
+    install_requires = ['systematic','dnspython','pyip','pyasn1','pysnmp'],
     scripts = glob.glob('bin/*'),
     packages = ['seine'] + ['seine.%s'%s for s in find_packages('seine')],
     author = 'Ilkka Tuohela', 
