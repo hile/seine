@@ -1,9 +1,13 @@
 #!/usr/bin/env python
 
-import sys,os,socket,logging
+import sys,os,socket
 from configobj import ConfigObj
 
+from systematic.log import Logger,LoggerError
+
 from pyasn1.error import PyAsn1Error,SubstrateUnderrunError,ValueConstraintError
+from pysnmp.carrier.error import CarrierError
+
 from pysnmp.entity import config as snmpconfig
 from pysnmp.entity.rfc3413.oneliner.cmdgen import CommunityData,UsmUserData
 from pysnmp.entity.rfc3413.oneliner.cmdgen import UdpTransportTarget
@@ -16,8 +20,8 @@ DEFAULT_PORT = 161
 DEFAULT_TIMEOUT = 1
 DEFAULT_RETRIES = 5
 DEFAULT_VERSION='2c'
-DEFAULT_V3_AUTH_PROTOCOL = 'MD5'
-DEFAULT_V3_PRIV_PROTOCOL = 'DES'
+DEFAULT_V3_AUTH_PROTOCOL = 'SHA'
+DEFAULT_V3_PRIV_PROTOCOL = 'AES'
 
 V3_AUTH_PROTOCOLS = {
     'MD5': snmpconfig.usmHMACMD5AuthProtocol,
@@ -31,9 +35,6 @@ V3_PRIV_PROTOCOLS = {
 }
 
 class SNMPAuth(object):
-    """
-    Parent class for SNMP authentication processing
-    """
     def __init__(self,version):
         if version not in SNMP_VERSIONS:
             raise SNMPError('Invalid SNMP version: %s' % version)
@@ -61,9 +62,7 @@ class SNMPv2cAuth(SNMPAuth):
         return '%s SNMP v2c community %s' % (self.securityname,self.community)
 
 class SNMPv3Auth(SNMPAuth):
-    def __init__(self,username,authPass,privPass=None,
-                 authProtocol=DEFAULT_V3_AUTH_PROTOCOL,
-                 privProtocol=DEFAULT_V3_PRIV_PROTOCOL):
+    def __init__(self,username,authPass,privPass=None,authProtocol=DEFAULT_V3_AUTH_PROTOCOL,privProtocol=DEFAULT_V3_PRIV_PROTOCOL):
 
         SNMPAuth.__init__(self,'3')
         self.username = username
@@ -74,15 +73,13 @@ class SNMPv3Auth(SNMPAuth):
         self.priv_name  = privProtocol
 
         self.auth = UsmUserData( self.username,
-            authKey=self.authPass,privKey=privPass,
+            authKey=self.authPass, privKey=privPass,
             authProtocol=self.__lookup_auth_protocol(authProtocol),
             privProtocol=self.__lookup_priv_protocol(privProtocol),
         )
 
     def __str__(self):
-        return 'SNMP v3 auth: user %s auth %s encryption %s' % (
-            self.username,self.auth_name,self.priv_name
-        )
+        return 'SNMP v3 auth: user %s auth %s encryption %s' % (self.username,self.auth_name,self.priv_name)
 
     def __lookup_auth_protocol(self,protocol):
         if not protocol:
@@ -139,20 +136,17 @@ class SNMPClient(object):
     Wrapper for SNMP SET, GET and WALK requests
     """
 
-    def __init__(self,address,auth,
-                 port=DEFAULT_PORT, timeout=DEFAULT_TIMEOUT, retries=DEFAULT_RETRIES,
-                 oid_map = {}, index_cache_path=None):
+    def __init__(self,address,auth, port=DEFAULT_PORT, timeout=DEFAULT_TIMEOUT, retries=DEFAULT_RETRIES, oid_map = {}, index_cache_path=None):
+        self.logger = Logger('snmp')
+        self.log = self.logger.default_stream
         self.address = address
         self.trees = {}
-        self.log = logging.getLogger('modules')
         self.auth_client = auth
         self.port = port
         self.timeout = timeout
         self.retries = retries
         try:
-            self.target = UdpTransportTarget(
-                (address,self.port), timeout=self.timeout,retries=self.retries
-            )
+            self.target = UdpTransportTarget((address,self.port), timeout=self.timeout,retries=self.retries)
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
@@ -175,9 +169,7 @@ class SNMPClient(object):
             config = self.oid_map[attr]
             oid = config['oid']
             try:
-                return [
-                    config['decode'](k,v) for k,v in self.walk(oid).items()
-                ]
+                return [config['decode'](k,v) for k,v in self.walk(oid).items()]
             except AttributeError:
                 raise SNMPError('Invalid OID map dictionary for %s' % k)
         raise AttributeError('No such SNMPClient attribute: %s' % attr)
@@ -199,9 +191,7 @@ class SNMPClient(object):
         except ValueError,e:
             raise SNMPError("Invalid OID: %s" % e)
         try:
-            (e,status,index,varBinds) = CommandGenerator().setCmd(
-                self.auth_client.auth,self.target,varBinds
-            )
+            (e,status,index,varBinds) = CommandGenerator().setCmd(self.auth_client.auth,self.target,varBinds)
             if status != 0:
                 raise SNMPError('Error setting SNMP value')
         except socket.gaierror,e:
@@ -220,9 +210,7 @@ class SNMPClient(object):
 
         try:
             self.log.debug('Getting OID %s' % '.'.join(str(i) for i in oid))
-            (eind,status,index,varBinds) = CommandGenerator().getCmd(
-                self.auth_client.auth, self.target, oid
-            )
+            (eind,status,index,varBinds) = CommandGenerator().getCmd(self.auth_client.auth, self.target, oid)
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
@@ -242,16 +230,12 @@ class SNMPClient(object):
             raise SNMPError("Invalid OID: %s" % e)
         try:
             self.log.debug('Walking tree %s' % '.'.join(str(i) for i in oid))
-            (eind,status,index,varBinds) = CommandGenerator().nextCmd(
-                self.auth_client.auth, self.target, oid
-            )
+            (eind,status,index,varBinds) = CommandGenerator().nextCmd(self.auth_client.auth, self.target, oid)
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
             raise SNMPError("ASN1 parsing error: %s" % e)
-        return dict(
-            ('.'.join(str(x) for x in v[0][0]), v[0][1]) for v in varBinds
-        )
+        return dict(('.'.join(str(x) for x in v[0][0]), v[0][1]) for v in varBinds)
 
     def tree_key(self,oid):
         try:
@@ -260,17 +244,14 @@ class SNMPClient(object):
             oid = [int(i) for i in oid]
             return '.'.join(str(i) for i in oid)
         except ValueError:
-            raise NagiosPluginError('Invalid OID: %s' % oid)
+            raise SNMPError('Invalid OID: %s' % oid)
 
     def tree_indexes(self,oid):
         oid = self.tree_key(oid)
         try:
-            return map(lambda k:
-                k.split('.')[-1],
-                sorted(self.trees[oid].keys(),lambda x,y: cmp_oid(x,y))
-            )
+            return map(lambda k: k.split('.')[-1], sorted(self.trees[oid].keys(),lambda x,y: cmp_oid(x,y)))
         except KeyError:
-            raise NagiosPluginError('Tree not loaded: %s' % oid)
+            raise SNMPError('Tree not loaded: %s' % oid)
 
     def tree(self,oid,refetch=False,indexed=False):
         tree_id = self.tree_key(oid)
@@ -280,8 +261,10 @@ class SNMPClient(object):
             try:
                 tree = self.walk(oid)
                 self.trees[tree_id] = tree
+            except CarrierError,emsg:
+                raise SNMPError(str(emsg))
             except SNMPError,emsg:
-                raise NagiosPluginError(str(emsg))
+                raise SNMPError(str(emsg))
         if indexed is True:
             keys = sorted(tree.keys(),lambda x,y: cmp_oid(x,y))
             return [(k.lstrip('.').split('.')[-1],tree[k]) for k in keys]
@@ -296,23 +279,19 @@ class SNMPClient(object):
         oids = dict([(self.tree_key(k),oid_config[k]) for k in oid_config.keys()])
         missing = filter(lambda k: not self.trees.has_key(k), oids.keys())
         if len(missing)>0:
-            raise NagiosPluginError(
-                'Trees for OIDs not fetched: %s' % ' '.join(missing)
-            )
+            raise SNMPError('Trees for OIDs not fetched: %s' % ' '.join(missing) )
 
         indexes = [self.tree_indexes(oid) for oid in oids.keys()]
-        #if len(indexes)>1:
-        #    raise NagiosPluginError('Indexes for given OIDs are different')
         results = dict((int(i),{}) for i in indexes[0])
         for i in indexes[0]:
             for oid in oids.keys():
-                k = filter(lambda k:
-                    k.split('.')[-1] == i,
-                    self.trees[oid].keys()
-                )[0]
+                try:
+                    k = filter(lambda k: k.split('.')[-1] == i, self.trees[oid].keys())[0]
+                except IndexError:
+                    raise SNMPError('Error mapping OID tree %s' % oid)
                 v = self.trees[oid][k]
                 if results[int(i)].has_key(oid):
-                    raise NagiosPluginError('Duplicate data for %s' % oid)
+                    raise SNMPError('Duplicate data for %s' % oid)
                 try:
                     results[int(i)][oid] = oids[oid](v)
                 except ValueError:

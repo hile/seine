@@ -1,0 +1,43 @@
+#!/usr/bin/env python
+"""
+Enumerate and sort ARP address lists from arp -an
+"""
+
+import sys,re
+
+from systematic.shell import Script,ScriptError
+from subprocess import check_output,CalledProcessError
+from seine.address import IPv4Address,EthernetMACAddress
+
+if sys.platform == 'darwin':
+    RE_ARP = re.compile('^[^\(]+\((?P<ip>[^\)]+)\) at (?P<mac>[^\s]+) on (?P<interface>[^\s]+) ifscope .*$')
+else:
+    RE_ARP = re.compile('[^/(]+\((?P<ip>[^\)]+)\) at (?P<mac>[^\s]+) .* on (?P<interface>[^\s]+)')
+
+script = Script()
+script.add_argument('interfaces',nargs='*',help='Interfaces to list ARP entries from')
+args = script.parse_args()
+
+try:
+    stdout = check_output(['arp','-an'])
+except CalledProcessError:
+    script.exit(1,'Error executing arp -an')
+
+arptable = {}
+for l in [l.strip() for l in stdout.split('\n')]:
+    m = RE_ARP.match(l)
+    if not m: continue
+    try:
+        address = IPv4Address(m.groupdict()['ip'])
+        mac = EthernetMACAddress(m.groupdict()['mac'])
+        interface = m.groupdict()['interface']
+    except ValueError,emsg:
+        print emsg
+        sys.exit(1)
+    arptable[address] = {'address': address.ipaddress, 'ethernet': mac, 'interface': interface }
+
+for k in sorted(arptable.keys()):
+    if args.interfaces and arptable[k]['interface'] not in args.interfaces:
+        continue
+    print '%(address)-15s %(ethernet)-19s %(interface)s' % arptable[k]
+

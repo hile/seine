@@ -2,12 +2,14 @@
 Wrapper for urllib2 to do some basic tasks with URLs.
 Written by Ilkka Tuohela <hile@iki.fi>, 2007-2012.
 Licensed under BSD license.
+
+This module is outaged: please use 'requests' standard module, it's better.
 """
 
-import os,sys,re,socket,tempfile,logging
+import os,sys,re,socket
 import urllib,urllib2,cookielib
 
-from seine.address import IPv4Address,IPv6Address 
+from seine.address import IPv4Address,IPv6Address
 
 # Default socket timeout for requests, can be overriden with 'timeout' keyword
 DEFAULT_RETRIES = 1
@@ -21,7 +23,7 @@ class HTTPRequestError(Exception):
 
 class HTTPRequest(object):
     """
-    URL requests 
+    URL requests
     Arguments:
     proxy_url   URL to proxy, or environment http_proxy
     user_agent  User-Agent header or DEFAULT_USERAGENT
@@ -68,7 +70,7 @@ class HTTPRequest(object):
         if self.proxy_url is not None:
             handler = (
                 urllib2.ProxyHandler(
-                    {'http':self.proxy_url, 'https':self.proxy_url 
+                    {'http':self.proxy_url, 'https':self.proxy_url
                 }),
                 self.auth
             )
@@ -85,7 +87,7 @@ class HTTPRequest(object):
 
     def request(self,url,method='GET',**kwargs):
         """
-        Send a HTTP GET or POST request. 
+        Send a HTTP GET or POST request.
         Returns tuple (code,data,headers)
         """
         old_timeout = socket.getdefaulttimeout()

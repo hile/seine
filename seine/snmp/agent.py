@@ -5,179 +5,184 @@ SNMP agent base class for net-snmp pass/pass_persist agents.
 See the SNMPAgentTest class below how to use the SNMPAgent class.
 """
 
-import sys,os,signal,errno,select
-import re,time,logging
-from optparse import OptionParser
+import sys,os,re,time,signal,errno,select
+
+from systematic.shell import Script,ScriptThread,ScriptError
+from systematic.log import Logger,LoggerError
+from seine.snmp import SNMPError
 
 # Valid SNMP data types
-SNMP_DATA_TYPES = [
-    'integer',
-    'gauge',
-    'counter',
-    'timeticks',
-    'ipaddress',
-    'objectid',
-    'string',
-]
 
-class SNMPAgent(list):
+SNMP_DATA_TYPE_MAP = {
+    'integer':      lambda x: int(x),
+    'gauge':        lambda x: int(x),
+    'counter':      lambda x: int(x),
+    'timeticks':    lambda x: int(x),
+    'string':       lambda x: str(x),
+    'ipaddress':    lambda x: str(IPv4Address(x)),
+    'objectid':     lambda x: str(x),
+}
+
+class SNMPItem(object):
+    def __init__(self,index,key,value):
+        self.log = Logger('snmp').default_stream
+        self.parent = None
+        self.index = int(index)
+        self.key = key
+        if not key in SNMP_DATA_TYPE_MAP.keys():
+            raise SNMPError('Invalid item type: %s' % key)
+        try:
+            value = SNMP_DATA_TYPE_MAP[key](value)
+        except:
+            raise SNMPError('Invalid item type %s value "%s"' % (key,value))
+        self.value = value
+
+    def __repr__(self):
+        return '%s\n%s' % (self.oid,self.value)
+
+    @property
+    def oid(self):
+        if self.parent is None:
+            return '.%s' % self.index
+        return '.%s.%s' % ('.'.join('%s'%x for x in self.parent.oid),self.index)
+
+    def set_parent(self,parent):
+        self.parent = parent
+
+class SNMPTree(dict):
     def __init__(self,oid):
-        self.last_next_ts = None
-        self.log = logging.getLogger('agent')
-        self.oid = self.__validate_oid(oid)
+        self.log = Logger('snmp').default_stream
+        self.sorted_keys = []
+        self.oid = self.__format_oid__(oid)
+        self.oid_string = '.%s'% '.'.join(str(x) for x in self.oid)
 
-    def __getitem__(self,oid):
-        oid = self.__validate_oid(oid)
-        if len(oid) <= len(self.oid):
-            raise KeyError('Too short OID')
-        if oid[:len(self.oid)] != self.oid:
-            raise KeyError('Tree index does not match')
+    def __repr__(self):
+        return 'TREE %s' % '.'.join('%s'%x for x in self.oid)
 
-        path = oid[len(self.oid):]
-        if path[0] >= len(self):
-            raise KeyError('Index out of tree')
-
-        entry = self
+    def __format_oid__(self,oid):
+        if not isinstance(oid,list):
+            try:
+                oid = oid.strip('.').split('.')
+            except ValueError:
+                raise ValueError('Invalid OID: %s' % oid)
         try:
-            for i in path: 
-                entry = entry[i]
-        except IndexError:
-            raise KeyError('No such oid entry')
-        return entry
-
-    def __validate_oid(self,oid):
-        if oid is None:
-            raise TypeError('OID is none')
-        try:
-            if type(oid) != list:
-                oid = oid.strip('.').split('.') 
-            return [int(x) for x in oid]
+            oid = [int(x) for x in oid]
+            for x in oid:
+                if x<=0:
+                    raise ValueError
+            return oid
         except ValueError:
-            raise ValueError('Invalid OID value %s (%s)' % (oid,e))
+            raise ValueError('Invalid OID: %s' % oid)
 
-    def __response(self,oid,entry):
-        return '\n'.join(
-            '.'+'.'.join(str(x) for x in oid),
-            entry['type'],
-            entry['value']
-        )
+    def __item_index__(self,oid):
+        try:
+            oid = self.__format_oid__(oid)
+            if len(oid)<len(self.oid) or oid[:len(self.oid)]!=self.oid:
+                return None
+            return oid[len(self.oid):]
+        except ValueError:
+            return None
+
+    def __invalid__(self,message):
+        self.log.debug(message)
+        return None
+
+    def add(self,item,value=None):
+        if isinstance(item,SNMPItem):
+            if self.has_key(item.index):
+                raise SNMPError('Duplicate index: %s' % item.index)
+            item.set_parent(self)
+            self[item.oid] = item
+
+        elif isinstance(item,SNMPTree):
+            for oid,entry in item.items():
+                self[oid] = entry
+
+    def loaded(self):
+        self.sorted_keys = sorted(self.keys())
+
+    def GET(self,oid):
+        if oid==self.oid_string:
+            return self.__invalid__('GET for tree root')
+        try:
+            oid = '.%s' % '.'.join(str(x) for x in self.__format_oid__(oid))
+        except ValueError:
+            return self.__invalid__('GET invalid OID')
+        try:
+            return '%s'%self[oid].value
+        except KeyError:
+            return self.__invalid__('GET invalid OID: key not found')
+
+    def NEXT(self,oid):
+        if oid==self.oid_string:
+            if not len(self.sorted_keys):
+                return self.__invalid__('GET for empty tree root')
+            return self[self.sorted_keys[0]].value
+
+        try:
+            oid = '.%s' % '.'.join(str(x) for x in self.__format_oid__(oid))
+        except ValueError:
+            return self.__invalid__('NEXT invalid OID')
+        try:
+            oid_index = self.sorted_keys.index(oid)
+        except ValueError:
+            return self.__invalid__('NEXT invalid OID')
+
+        if oid_index+1>=len(self.sorted_keys):
+            return self.__invalid__('NEXT for last OID')
+        try:
+            return '%s'%self[self.sorted_keys[oid_index+1]].value
+        except KeyError:
+            return self.__invalid__('NEXT BUG data screwed up while indexing')
+
+    def SET(self,oid_string,item,value):
+        raise NotImplementedError
+
+class SNMPAgent(Script):
+    def __init__(self,oid):
+        Script.__init__(self)
+        self.log = Logger('snmp').default_stream
+        self.last_reload_ts = None
+        self.tree = SNMPTree(oid)
+
+        self.add_argument('-g','--get',help='SNMP GET request')
+        self.add_argument('-n','--next',help='SNMP GET request')
+        self.add_argument('-t','--tree',action='store_true',help='Show OID tree')
 
     def __SIGHUP__(self,signum,frame):
         """
-        Signal handler to reload configuration. Note this requires also the 
-        IOError processing in main input loop below 
+        Signal handler to reload configuration. Note this requires also the
+        IOError processing in main input loop below
         """
         self.log.debug('Reloading from signal')
         self.reload()
 
-    def append(self,data):
-        def verify_tree(self,tree):
-            if type(tree) != list:
-                raise ValueError('You can only append lists')
-            if len(tree)>0 and tree[0] is not None:
-                tree.insert(0,None)
-            for entry in tree[1:]:
-                if type(entry) == dict:
-                    for k in entry.keys():
-                        if k == 'type' and entry[k] not in SNMP_DATA_TYPES:
-                            raise ValueError('Invalid type %s' % entry[k])
-                        elif k == 'value':
-                            # TODO check values
-                            continue
-                        else:
-                            raise ValueError('Unknown key %s in tree' % k)
-                if type(entry) == list:
-                    verify_tree(entry)
-                else:
-                    raise ValueError('Unknown data in tree')
-
-        if self == []: 
-            list.append(self,None)
-        verify_tree(data)
-        list.append(self,data)
-
     def GET(self,oid):
-        self.reload()
-        oid = self.__validate_oid(oid)
         try:
-            entry = self[oid]
-        except KeyError,e:
+            return self.tree.GET(oid)
+        except SNMPError:
             return None
-        if type(entry) == list:
-            return None
-        return self.__response(oid,entry)
-        
+
     def NEXT(self,oid):
-        self.reload()
-        self.last_next_ts = long(time.time())
-
-        # Return first entry, requested tree root  
-        oid = self.__validate_oid(oid)
-        if oid == self.oid:
-            while True:
-                oid.append(1)
-                try:
-                    entry = self[oid]
-                except KeyError,e:
-                    return None
-                if type(entry) == list:
-                    continue
-                return self.__response(oid,entry)
-                
-        # Check given OID is valid
-        try: 
-            current = self[oid]
-            if type(current) == list:
-                oid.append(1)
-                entry = self[oid]
-                while type(entry) == list:
-                    oid.append(1)
-                    entry = entry[1]
-                return self.__response(oid,entry)
-            path = oid[len(self.oid):]
-            if path[0] >= len(self):
-                return None
-        except KeyError,e:
-            self.log.debug(e)
+        try:
+            return self.tree.NEXT(oid)
+        except SNMPError,emsg:
+            print emsg
             return None
 
-        oid = list(self.oid)
-        oid.extend(path)
-        oid[-1] += 1
-        try:
-            entry = self[oid]
-            oid = '.'+'.'.join(map(lambda x: str(x), oid))
-            return self.__response(oid,entry)
-        except KeyError:
-            pass
-
-        # Try returning next subtree's first entry
-        i = 1
-        while i<len(path):
-            oid = list(self.oid)
-            oid.extend(path[:-i])
-            oid[-1] += 1
-            try:
-                entry = self[oid]
-                while type(entry) == list:
-                    oid.append(1)
-                    entry = self[oid]
-                return self.__response(oid,entry)
-            except KeyError:
-                pass
-            i+=1
-        return None    
+    def SET(self,key,value):
+        return self.tree.SET(oid,value)
 
     def reload(self):
         """
-        This method must be implemented in a child class. It is used to 
+        This method must be implemented in a child class. It is used to
         reload the SNMP tree data from files, if possible.
 
         The method is called for every GET and NEXT: you must implement some
         kind of check if the reload is actually needed or not (like, check
-        source file mtime and only reload if file is modified). 
-         
-        For NEXT you should check if self.last_next_ts is too recent, see example
+        source file mtime and only reload if file is modified).
+
+        For NEXT you should check if self.last_reload_ts is too recent, see example
         in SNMPAgentTest reload class
         """
         raise NotImplementedError('You must implement reload in child class')
@@ -185,35 +190,27 @@ class SNMPAgent(list):
     def main(self,opts=None):
         """
         Main loop to execute for agent. You can either run this in:
-        
-        - 'pass' mode: get/next for single OID by passing in OptionParser 
+
+        - 'pass' mode: get/next for single OID by passing in OptionParser
           'options' value 'get' or 'next' (snmpd.conf 'pass' agent)
-        - 'pass_persist' mode: without any options, in which case the loop 
+        - 'pass_persist' mode: without any options, in which case the loop
            acts as permanent snmpd pass_persist agent.
         """
         signal.signal(signal.SIGHUP, self.__SIGHUP__)
 
-        if hasattr(opts,'tree'):
-            opt = getattr(opts,'tree')
-            if opt is not None:
-                print '.%s' % '.'.join(map(lambda x: str(x), self.oid))
-                return
-
-        if hasattr(opts,'get'):
-            opt = getattr(opts,'get')
-            if opt is not None:
-                v = self.GET(opt)
-                if v is not None: 
-                    print v
-                return
-
-        if hasattr(opts,'next'):
-            opt = getattr(opts,'next')
-            if opt is not None:
-                v = self.NEXT(opt)
-                if v is not None: 
-                    print v
-                return
+        args = self.parse_args()
+        if args.tree:
+            print '.%s' % '.'.join(map(lambda x: str(x), self.oid))
+        elif args.get:
+            v = self.GET(args.get)
+            if v is not None:
+                print v
+        elif args.next:
+            v = self.NEXT(args.next)
+            if v is not None:
+                print v
+        if args.tree or args.get or args.next:
+            self.exit(0)
 
         # Just a marker to indicate where we detect EOF
         EOF = ''
@@ -221,7 +218,8 @@ class SNMPAgent(list):
             try:
                 # Read a line of input from snmpd
                 cmd = sys.stdin.readline()
-                if cmd == EOF: break
+                if cmd == EOF:
+                    break
                 cmd = cmd.rstrip().lower()
 
                 if cmd == 'ping':
@@ -233,16 +231,19 @@ class SNMPAgent(list):
 
                 if cmd in ['set','get','getnext']:
                     oid = sys.stdin.readline()
-                    if oid == EOF: break
-                    oid = oid.rstrip() 
+                    if oid == EOF:
+                        break
+                    oid = oid.rstrip()
 
                 if cmd == 'set':
                     sys.stdout.write('not-writable\n')
                 elif cmd == 'get':
+                    self.reload()
                     value = self.GET(oid)
                     sys.stdout.write('%s' % value and value or 'NONE')
                     sys.stdout.write('\n')
                 elif cmd == 'getnext':
+                    self.reload()
                     value = self.NEXT(oid)
                     sys.stdout.write('%s' % value and value or 'NONE')
                     sys.stdout.write('\n')
@@ -251,7 +252,7 @@ class SNMPAgent(list):
 
             except IOError,e:
                 # we get EINTR with SIGHUP and we can ignore it
-                if e[0] == errno.EINTR: 
+                if e[0]==errno.EINTR:
                     continue
                 self.log.debug('IOError: %s' % e[1])
                 return
@@ -262,9 +263,8 @@ class SNMPAgent(list):
                 return
 
 class SNMPAgentTest(SNMPAgent):
-    def __init__(self,oid='1.2.3.4'):
-        super(SNMPAgentTest,self).__init__(oid)
-
+    def __init__(self):
+        SNMPAgent.__init__(self,oid='1.2.3.4')
         self.intvalue = 0
         self.reload()
 
@@ -272,45 +272,38 @@ class SNMPAgentTest(SNMPAgent):
         """
         Child class example method to reload SNMP data from sources.
         """
-        if self.last_next_ts and self.last_next_ts >= long(time.time())-1:
+        if self.last_reload_ts and self.last_reload_ts >= long(time.time())-1:
             return
-        
-        self.__delslice__(0,len(self))
 
-        # Here you should check if the source has been modified and
-        # quit if it is not: for example, os.stat().st_mtime for the
-        # source file.
-        
-        # Insert a list of example OIDs as 1.2.3.4.1 subtree. You need
-        # to call append for each oid root subtree once.
-        list.append(self, [
-            # this creates oids 1.2.3.4.1.1.1 and 1.2.3.4.1.1.2
-            [
-            { 'type': 'string', 'value': 'test tree name', },
-            { 'type': 'integer', 'value': 'test tree reload count', },
-            ],
+        self.tree.clear()
 
-            # this creates oids 1.2.3.4.1.2.1 and 1.2.3.4.1.2.2
-            [
-            { 'type': 'string', 'value': 'test', },
-            { 'type': 'integer', 'value': self.intvalue, },
-            ],
-        ])
+        subtree = SNMPTree('1.2.3.4.1.1')
+        subtree.add(SNMPItem(1,'string','test tree name'))
+        subtree.add(SNMPItem(2,'string','test tree name'))
+        subtree.add(SNMPItem(4,'string','test incontinuous OID'))
+        self.tree.add(subtree)
+        #for k,v in subtree.items(): print k,v
 
-        # Increate reload counter: just for this example ... 
+        subtree = SNMPTree('1.2.3.4.1.2.3')
+        subtree.add(SNMPItem(1,'string','test value'))
+        subtree.add(SNMPItem(2,'integer',self.intvalue))
+        self.tree.add(subtree)
+        #for k,v in subtree.items(): print k,v
+
+        def print_sub(sub):
+            if isinstance(sub,SNMPTree):
+                print 'TREE', '.'.join('%s'%x for x in sub.oid)
+            for k,v in sub.items():
+                if not isinstance(v,dict):
+                    print '  ',k,v
+                else:
+                    print_sub(v)
+        print_sub(self.tree)
+
+        # Increate reload counter: just for this example ...
         self.intvalue+=1
+        self.tree.loaded()
 
 if __name__ == '__main__':
-
-    parser = OptionParser()
-    parser.add_option('-g','--get',dest='get',help='SNMP GET request')
-    parser.add_option('-n','--next',dest='next',help='SNMP GET request')
-    parser.add_option('-t','--tree',dest='tree',action='store_true',help='Show OID tree')
-    parser.add_option('-d','--debug',dest='debug',action='store_true',help='Show debug messages')
-    (opts,args) = parser.parse_args()
-    if opts.debug: 
-        logging.basicConfig(level=logging.DEBUG) 
-
-    t = SNMPAgentTest()
-    t.main(opts)
+    SNMPAgentTest().main()
 

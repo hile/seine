@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-HP printer statistics and control module. 
+HP printer statistics and control module.
 
 Setting of variables not implemented, because my printer does not support
 them MIB oids for the ones I was interested about setting.
@@ -53,11 +53,11 @@ HP_PRINTER_OID_MAP = {
     'total_pages': {
         'oid': HP_LASERJET_MIB_OID+'.4.2.1.4.1.2.5.0',
         'decode': lambda x: int(x),
-    },    
+    },
     'color_pages': {
         'oid': HP_LASERJET_MIB_OID+'.4.2.1.4.1.2.7.0',
         'decode': lambda x: int(x),
-    },    
+    },
     'duplex_pages': {
         'oid': HP_LASERJET_MIB_OID+'.4.2.1.4.1.2.22.0',
         'decode': lambda x: int(x),
@@ -130,22 +130,22 @@ HP_PRINTER_OID_MAP = {
         'oid': HP_LASERJET_MIB_OID+'.1.1.7.0',
         'decode': lambda x: dict(
             (k in DEVICE_INFO_MAP.keys() and DEVICE_INFO_MAP[k] or k,v.strip()) \
-            for k,v in 
+            for k,v in
             [s.split(':') for s in str(x).strip(';').split(';')]
          )
     },
     'supply_names': {
-        'oid': PRINTER_MIB_OID + '.11.1.1.6.1',
+        'oid': PRINTER_MIB_OID + '.11.1.1.6',
         'type': 'tree',
         'decode': lambda k,v: (k,str(v)),
     },
     'supply_max_levels': {
-        'oid': PRINTER_MIB_OID + '.11.1.1.8.1',
+        'oid': PRINTER_MIB_OID + '.11.1.1.8',
         'type': 'tree',
         'decode': lambda k,v: (k,int(v)),
     },
     'supply_levels': {
-        'oid': PRINTER_MIB_OID + '.11.1.1.9.1',
+        'oid': PRINTER_MIB_OID + '.11.1.1.9',
         'type': 'tree',
         'decode': lambda k,v: (k,int(v)),
     },
@@ -159,7 +159,7 @@ class LaserjetSNMPControl(dict):
         if attr in HP_PRINTER_OID_MAP.keys():
             d = HP_PRINTER_OID_MAP[attr]
             oid = d['oid']
-            dtype = d.has_key('type') and d['type'] or 'get'
+            dtype = d.get('type','get')
             if dtype == 'get':
                 value = self.client.get(oid)[1]
                 if value == '':
@@ -171,16 +171,13 @@ class LaserjetSNMPControl(dict):
 
     def supply_level_details(self):
         levels = dict(getattr(self,'supply_names'))
-        details = dict( 
-            (k.split('.')[-1],{'name':levels[k]}) \
-            for k,v in levels.items()
-        )
+        details = dict((k.split('.')[-1],{'name':levels[k]}) for k,v in levels.items() )
         for oid,maxlevel in getattr(self,'supply_max_levels'):
             index = oid.split('.')[-1]
             details[index]['max'] = maxlevel
         for oid,level in getattr(self,'supply_levels'):
             index = oid.split('.')[-1]
-            details[index]['level'] = level 
+            details[index]['level'] = level
         return dict(
             (details[i]['name'],{
                 'index': i,
@@ -204,18 +201,19 @@ class LaserjetSNMPControl(dict):
         try:
             pagetype = rfc1902.Integer(TESTPAGE_MAP[pagetype])
         except KeyError:
-            raise ValueError('Invalid testpage type: %s' % pagetype) 
+            raise ValueError('Invalid testpage type: %s' % pagetype)
         oid = HP_LASERJET_MIB_OID + '.4.2.1.1.5.2.0'
         return self.client.set(oid,pagetype)
 
 if __name__ == '__main__':
     import sys
 
-    logging.basicConfig(level=logging.INFO)
     ljclient = LaserjetSNMPControl(
         SNMPClient(sys.argv[1],SNMPv1Auth(community=sys.argv[2]))
     )
+    #ljclient.client.logger.set_level('DEBUG')
+    #for k in sorted(HP_PRINTER_OID_MAP.keys()): print k, getattr(ljclient,k)
 
-    for k in sorted(HP_PRINTER_OID_MAP.keys()):
-        print k, getattr(ljclient,k)
+    for color,details in ljclient.supply_level_details().items():
+        print '%12s %s %%' % (color,details['percent'])
 
