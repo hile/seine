@@ -194,6 +194,8 @@ class SNMPClient(object):
             (e,status,index,varBinds) = CommandGenerator().setCmd(self.auth_client.auth,self.target,varBinds)
             if status != 0:
                 raise SNMPError('Error setting SNMP value')
+        except CarrierError,emsg:
+            raise SNMPError(str(emsg))
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
@@ -211,10 +213,12 @@ class SNMPClient(object):
         try:
             self.log.debug('Getting OID %s' % '.'.join(str(i) for i in oid))
             (eind,status,index,varBinds) = CommandGenerator().getCmd(self.auth_client.auth, self.target, oid)
-        except socket.gaierror,e:
-            raise SNMPError(e)
-        except PyAsn1Error,e:
-            raise SNMPError("ASN1 parsing error: %s" % e)
+        except CarrierError,emsg:
+            raise SNMPError(str(emsg))
+        except socket.gaierror,emsg:
+            raise SNMPError(emsg)
+        except PyAsn1Error,emsg:
+            raise SNMPError("ASN1 parsing error: %s" % emsg)
 
         try:
             oid = varBinds[0][0]
@@ -231,6 +235,8 @@ class SNMPClient(object):
         try:
             self.log.debug('Walking tree %s' % '.'.join(str(i) for i in oid))
             (eind,status,index,varBinds) = CommandGenerator().nextCmd(self.auth_client.auth, self.target, oid)
+        except CarrierError,emsg:
+            raise SNMPError(str(emsg))
         except socket.gaierror,e:
             raise SNMPError(e)
         except PyAsn1Error,e:
