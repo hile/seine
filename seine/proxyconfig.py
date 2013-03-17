@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Proxy autoconfiguration processing, for both passing autoconfig URL 
+Proxy autoconfiguration processing, for both passing autoconfig URL
 and retriving from WPAD DNS configured hosts.
 """
 
@@ -50,10 +50,7 @@ def ProxyAutoConfig(object):
 
         if proxies.startswith('PROXY '):
             proxy_url = proxies.split()[1]
-            return urllib2.ProxyHandler({ 
-                'http': proxy_url,
-                'https': proxy_url 
-            })
+            return urllib2.ProxyHandler({'http': proxy_url,'https': proxy_url})
         else:
             return urllib2.ProxyHandler()
- 
+

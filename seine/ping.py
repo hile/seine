@@ -45,9 +45,7 @@ class PingSocket(object):
             try:
                 self.socket.bind((source,socket.IPPROTO_ICMP))
             except socket.error,(ecode,emsg):
-                raise PingError('Error binding to source address %s: %s' % (
-                    source,emsg
-                ))
+                raise PingError('Error binding to source address %s: %s' % (source,emsg))
 
     def sendto(self, packet):
         try:
@@ -107,7 +105,7 @@ class Pinger(object):
         if when-sent <= timeout:
             self.deltas.append(float(when-sent)*1000)
         else:
-            print '%s timed out' % sent 
+            print '%s timed out' % sent
             self.timed_out.append(sent)
 
     def ping(self,packets=1):
@@ -167,10 +165,10 @@ class Pinger(object):
 
         if len(self.deltas) == 0:
             summary = {
-                'min': None, 
-                'max': None, 
+                'min': None,
+                'max': None,
                 'average': None,
-                'sent': packets, 
+                'sent': packets,
                 'received': len(self.deltas) + len(self.timed_out),
                 'packetloss': loss
             }
@@ -179,19 +177,9 @@ class Pinger(object):
                 'min': min(self.deltas),
                 'max': max(self.deltas),
                 'average': reduce(lambda x,y: x+y, self.deltas) / len(self.deltas),
-                'sent': packets, 
+                'sent': packets,
                 'received': received,
                 'packetloss': loss
             }
         self.__reset_counters()
         return summary
-
-if __name__ == '__main__':
-    import sys
-    #from seine.ping import Pinger,PingError
-    p = Pinger(sys.argv[1],timeout=100,interval=1000)
-    try:
-        print p.ping(3)
-    except PingError,emsg:
-        print emsg
-

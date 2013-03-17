@@ -2,7 +2,7 @@
 Classes to represent Ethernet, IPv4, IPv6 addresses and address ranges
 """
 
-import struct
+import struct,string
 
 # Maximum value available with 32 bits
 UINT_MAX = 2**32-1
@@ -93,10 +93,12 @@ class IPv4Address(object):
         Parameters:
         address: dot format address as in inet, or long integer
         netmask: netmask in dot format or long integer
+        oldformat: parse 127 as 127.0.0.0 not 0.0.0.127
         """
         self.oldformat = oldformat
-        if type(address) != int and len(address) == 4:
+        if type(address) != int and len(address) == 4 and not address.translate(None,string.digits+'abcdef'):
             address = '.'.join(str(x) for x in struct.unpack('BBBB',str(address)))
+
         if type(address) in [int,long]:
             ip = address
             mask = 32
@@ -137,7 +139,11 @@ class IPv4Address(object):
         try:
             self.address = self.__parseaddress__(ip)
         except ValueError:
-            raise ValueError('Invalid address: %s' % address)
+            if isinstance(address,basestring) and address=='default':
+                self.address = self.__parseaddress__('0.0.0.0')
+                self.mask = 0
+            else:
+                raise ValueError('Invalid address: %s' % address)
 
     def __parsenumber__(self,value):
         """
@@ -145,11 +151,14 @@ class IPv4Address(object):
         """
         value = str(value)
         if value[:2] == '0x':
-            return int(value,16)
+            if not value[2:].translate(None,string.digits):
+                return int(value,16)
         elif value[:1] == '0':
-            return int(value,8)
+            if not value.translate(None,string.digits):
+                return int(value,8)
         else:
             return int(value)
+        raise ValueError('Invalid number %s' % value)
 
     def __parseaddress__(self,value):
         """
@@ -259,10 +268,10 @@ class IPv4Address(object):
         return long(self.address)
 
     def __eq__(self,other):
-        return self.__cmp__(other) and True or False
+        return self.__cmp__(other)==0 and True or False
 
     def __ne__(self,other):
-        return not self.__cmp__(other) and True or False
+        return self.__cmp__(other)!=0 and True or False
 
     def __cmp__(self,other):
         if isinstance(other,basestring):
@@ -561,6 +570,9 @@ class IPv4AddressRange(object):
 
 class IPv6Address(dict):
     def __init__(self,value):
+        if value=='default':
+            value = '::0/0'
+
         try:
             address,bitmask = value.split('/')
         except ValueError:
@@ -628,16 +640,22 @@ class IPv6Address(dict):
         return long(self.address)
 
     def __eq__(self,other):
+        if not hasattr(other,'address'):
+            return False
         if self.address == other.address:
             return True
         return False
 
     def __ne__(self,other):
+        if not hasattr(other,'address'):
+            return True
         if self.address == other.address:
             return False
         return True
 
     def __cmp__(self,other):
+        if not hasattr(other,'address'):
+            return -1
         if self.address < other.address:
             return -1
         elif self.address > other.address:

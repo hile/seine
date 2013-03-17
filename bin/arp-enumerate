@@ -32,12 +32,12 @@ for l in [l.strip() for l in stdout.split('\n')]:
         mac = EthernetMACAddress(m.groupdict()['mac'])
         interface = m.groupdict()['interface']
     except ValueError,emsg:
-        print emsg
+        script.error(emsg)
         sys.exit(1)
     arptable[address] = {'address': address.ipaddress, 'ethernet': mac, 'interface': interface }
 
 for k in sorted(arptable.keys()):
     if args.interfaces and arptable[k]['interface'] not in args.interfaces:
         continue
-    print '%(address)-15s %(ethernet)-19s %(interface)s' % arptable[k]
+    script.message('%(address)-15s %(ethernet)-19s %(interface)s' % arptable[k])
 
