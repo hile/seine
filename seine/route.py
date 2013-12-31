@@ -12,10 +12,12 @@ class IPRoutingTable(object):
     def __init__(self):
         self.ipv4 = []
         self.ipv6 = []
+
         try:
             output = check_output(['netstat', '-rn'])
         except CalledProcessError, emsg:
             raise RoutingTableError('Error checking netstat -rn output: %s' % emsg)
+
         for l in [x.strip() for x in output.split('\n') if x!='']:
 
             fields = l.split()

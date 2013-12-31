@@ -1,9 +1,11 @@
-#!/usr/bin/env python
 """
 Proxy autoconfiguration processing, for both passing autoconfig URL
 and retriving from WPAD DNS configured hosts.
 """
 
+import requests
+import urllib2
+import socket
 import StringIO
 
 try:
@@ -11,46 +13,124 @@ try:
 except ImportError:
     raise ImportError('Module pacparser is not installed.')
 
-def ProxyAutoConfig(object):
-    def __init__(self,pac_url=None):
+DEFAULT_QUERY_TIMEOUT = 3.0
+
+class ProxyConfigError(Exception):
+    pass
+
+
+class ProxyAutoConfig(object):
+    """Wrapper class for pacparser
+
+    Wrap pacparser URL handling to a class
+
+    """
+
+    def __init__(self, pac_url=None, timeout=DEFAULT_QUERY_TIMEOUT):
         if pac_url is None:
-            wpad_domain = '.'.join(socket.getfqdn('wpad').split('.')[1:])
+            default_timeout = socket.getdefaulttimeout()
+            socket.setdefaulttimeout(timeout)
+            try:
+                wpad_domain = '.'.join(socket.getfqdn('wpad').split('.')[1:])
+            except socket.GAIError, emsg:
+                raise ProxyConfigError('Error querying wpad hostname: %s' % emsg)
+            socket.setdefaulttimeout(default_timeout)
+
             if wpad_domain == '':
-                raise ProxyConfigError('No URL given and WPAD not available')
+                raise ProxyConfigError('No URL given and WPAD hostname not available')
             else:
                 pac_url = 'http://wpad.%s/wpad.dat' % wpad_domain
-        self.pac_url = pac_url
-        self.pac = None
-        self.parser = pacparser.init()
 
-    def read_pac(self):
-        try:
-            pac_opener = urllib2.build_opener()
-            data = pac_opener.open(self.pac_url).read()
-        except urllib2.HTTPError,e:
-            logging.debug('Error etrieving WPAD configuration: %s' % e)
-            return
-        except urllib2.URLError,e:
-            logging.debug('Error retrieving WPAD configuration: %s' % e)
-            return
-        self.pac = StringIO.StringIO()
-        self.pac.write(data)
-        self.pac.seek(0)
+        self.pac_url = pac_url
+        self.data = None
+
+    def __read_pac__(self):
+        """Read PAC URL
+
+        Read and parse wpad.dat data from configured URL
+
+        """
+        if self.pac_url is None:
+            raise ProxyConfigError('PAC URL not configured')
+
+        res = requests.get(self.pac_url)
+        if res.status_code != 200:
+            raise ProxyConfigError('Error retrieving PAC from %s' % self.pac_url)
+
+        self.data = StringIO.StringIO()
+        self.data.write(res.content)
+        self.data.seek(0)
+
+    def __repr__(self):
+        return 'PAC: %s' % self.pac_url
 
     def __str__(self):
-        if self.pac is None:
-            self.read_pac()
-        self.pac.seek(0)
-        return self.pac.read()
+        """PAC as string
 
-    def proxy_handler(self,url):
-        self.parser.parse_pack(str(self))
-        proxies = self.parser.find_proxy(url)
-        self.parser.cleanup()
+        Return PAC contents as string
 
-        if proxies.startswith('PROXY '):
-            proxy_url = proxies.split()[1]
-            return urllib2.ProxyHandler({'http': proxy_url,'https': proxy_url})
+        """
+
+        if self.data is None:
+            self.__read_pac__()
+
+        self.data.seek(0)
+        return self.data.read()
+
+    def validate(self):
+        """Validate PAC with pacparser
+
+        Validate resolved PAC configuration with pacparser libarry
+
+        """
+        pacparser.init()
+        pacparser.parse_pac_string(str(self))
+        pacparser.cleanup()
+
+    def find_proxies(self, url):
+        """Parse proxy URL for provided URL
+
+        Parse PAC and return proxy URL for given URL
+
+        """
+
+        try:
+            protocol = url.split('://')[0]
+        except ValueError:
+            raise ProxyConfigError('Invalid URL: %s' % url)
+
+        try:
+            pacparser.init()
+            pacparser.parse_pac_string(str(self))
+            proxies = pacparser.find_proxy(url)
+            pacparser.cleanup()
+        except:
+            raise ProxyConfigError('Error parsing PAC: %s' % self.pac_url)
+        data = {}
+        for v in [x.strip() for x in proxies.split(';')]:
+            if v == 'DIRECT':
+                continue
+
+            if v[:6] == 'PROXY ':
+                data[protocol] = v[6:]
+        return data
+
+    def proxy_handler(self, url):
+        """Create proxyhandler for URL
+
+        Create a urllib2 proxy handler from parser data for provided url
+
+        """
+
+        try:
+            protocol = url.split('://')[0]
+        except ValueError:
+            raise ProxyConfigError('Invalid URL: %s' % url)
+
+        proxies = self.find_proxies(url)
+
+        if proxies:
+            return urllib2.ProxyHandler(proxies)
         else:
             return urllib2.ProxyHandler()
 
