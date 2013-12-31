@@ -12,6 +12,7 @@ clean:
 	@rm -rf build
 	@rm -rf dist
 	@find . -name '*.egg-info'|xargs rm -rf
+	make -C pacparser/src clean
 
 build:
 	python setup.py build
