@@ -1,0 +1,3 @@
+[submodule "pacparser"]
+	path = pacparser
+	url = https://code.google.com/p/pacparser

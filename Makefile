@@ -15,16 +15,19 @@ clean:
 
 build:
 	python setup.py build
+	make -C pacparser/src pymod
 
 ifdef PREFIX
 install_modules: build
 	python setup.py --no-user-cfg install --prefix=${PREFIX}
+	make -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)"
 install: install_modules 
 	install -m 0755 -d $(PREFIX)/bin
 	for f in bin/*; do echo " $(PREFIX)/$$f";install -m 755 $$f $(PREFIX)/bin/;done;
 else
 install_modules: build 
 	python setup.py install
+	make -C pacparser/src install-pymod
 install: install_modules 
 endif
 
