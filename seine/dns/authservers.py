@@ -1,12 +1,18 @@
-#!/usr/bin/env python
-
+"""
+DNS Zone authorized server processing classes
+"""
 import logging
 
-from seine.dns.resolver import resolve_records,QueryError
-from seine.dns.delegation import DNSZoneDelegation 
+from seine.dns.resolver import resolve_records, QueryError
+from seine.dns.delegation import DNSZoneDelegation
 
 class AuthorizedZoneServers(dict):
-    def __init__(self,domain,rootfile='/tmp/db.root',timeout=5,ipv4=True,ipv6=False):
+    """DNS zone authorized servers
+
+    Parser for authorized servers for DNS domain
+
+    """
+    def __init__(self, domain, rootfile='/tmp/db.root', timeout=5, ipv4=True, ipv6=False):
         self.domain = domain
         self.timeout = timeout
 
@@ -25,37 +31,60 @@ class AuthorizedZoneServers(dict):
             self.delegations['IPv6'] = DNSZoneDelegation(domain,
                 rrtype='AAAA', rootfile=rootfile, timeout=timeout
             )
-    
+
     def update_delegations(self):
-        for k,delegation in self.delegations.items():
+        """Update zone delegations
+
+        Query and update delegations for zone
+
+        """
+        for k, delegation in self.delegations.items():
             if delegation is None:
                 continue
-            self.log.debug('Updating %s %s delegations' % (self.domain,k))
+            self.log.debug('Updating %s %s delegations' % (self.domain, k))
             delegation.query_ns_delegation()
 
-    def query_server(self,server,rrtype):
-        self.log.debug('Querying %s records from %s' % (rrtype,server))
+    def query_server(self, server, rrtype):
+        """Query RR for server
+
+        Resolve this zone's RR from given server
+
+        """
+        self.log.debug('Querying %s records from %s' % (rrtype, server))
         return resolve_records(
-            query=self.domain,rrtype=rrtype,
-            nameserver=server,timeout=self.timeout
+            query=self.domain,
+            rrtype=rrtype,
+            nameserver=server,
+            timeout=self.timeout
         )
 
     def validate_SOA(self):
-        for addrtype,delegation in self.delegations.items():
+        """Validate domain SOA
+
+        Validate SOA record of a domain: this is only example stub right now!
+
+        TODO - actually compare SOA records with each other
+
+        """
+        for addrtype, delegation in self.delegations.items():
             self.log.debug('Checking %s SOA records' % (addrtype))
             for s in [s['address'] for s in delegation]:
-                self.SOA[s] = self.query_server(s,'SOA')
+                self.SOA[s] = self.query_server(s, 'SOA')
                 for r in self.SOA[s]['results']:
                     print r
-            # TODO - actually compare SOA records with each other
 
     def validate_NS(self):
-        for addrtype,delegation in self.delegations.items():
+        """Validate zone NS records
+
+        Validate NS records of a domain: this is only example stub right now!
+
+        TODO - actually compare NS records with each other and TLD delegation
+
+        """
+        for addrtype, delegation in self.delegations.items():
             self.log.debug('Checking %s NS records' % (addrtype))
             for s in [s['address'] for s in delegation]:
-                self.NS[s] = self.query_server(s,'NS')
+                self.NS[s] = self.query_server(s, 'NS')
                 for r in self.NS[s]['results']:
                     print r
-            # TODO - actually compare NS records with each other and 
-            # with the TLD delegation records
 
