@@ -723,6 +723,35 @@ class IPv6Address(dict):
             'revnibbles_arpa': '%s.ip6.arpa.' % revnibbles,
         })
 
+
+    @property
+    def address(self):
+        return self['address']
+
+    @property
+    def bitstring(self):
+        return self['bitstring']
+
+    @property
+    def bitmask(self):
+        return self['bitmask']
+
+    @property
+    def network(self):
+        return self['network']
+
+    @property
+    def network_bitstring(self):
+        return self['network_bitstring']
+
+    @property
+    def revnibbles_arpa(self):
+        return self['revnibbles_arpa']
+
+    @property
+    def revnibbles_int(self):
+        return self['revnibbles_int']
+
     def __getattr__(self, attr):
         try:
             return self[attr]
