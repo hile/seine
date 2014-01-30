@@ -8,12 +8,13 @@ them MIB oids for the ones I was interested about setting.
 See example in __main__ how this is used.
 """
 
-import re,logging
+import re
+import logging
 
 from pysnmp.proto import rfc1902
 
-from seine.snmp import SNMPError,SNMP_VERSIONS
-from seine.snmp.client import SNMPClient,SNMPv1Auth,SNMPv2cAuth,SNMPv3Auth
+from seine.snmp import SNMPError, SNMP_VERSIONS
+from seine.snmp.client import SNMPClient, SNMPv1Auth, SNMPv2cAuth, SNMPv3Auth
 
 PRINTER_MIB_OID = '.1.3.6.1.2.1.43'
 HP_LASERJET_MIB_OID = '.1.3.6.1.4.1.11.2.3.9'
@@ -129,57 +130,57 @@ HP_PRINTER_OID_MAP = {
     'device_info': {
         'oid': HP_LASERJET_MIB_OID+'.1.1.7.0',
         'decode': lambda x: dict(
-            (k in DEVICE_INFO_MAP.keys() and DEVICE_INFO_MAP[k] or k,v.strip()) \
-            for k,v in
+            (k in DEVICE_INFO_MAP.keys() and DEVICE_INFO_MAP[k] or k, v.strip()) \
+            for k, v in
             [s.split(':') for s in str(x).strip(';').split(';')]
          )
     },
     'supply_names': {
         'oid': PRINTER_MIB_OID + '.11.1.1.6',
         'type': 'tree',
-        'decode': lambda k,v: (k,str(v)),
+        'decode': lambda k, v: (k,str(v)),
     },
     'supply_max_levels': {
         'oid': PRINTER_MIB_OID + '.11.1.1.8',
         'type': 'tree',
-        'decode': lambda k,v: (k,int(v)),
+        'decode': lambda k, v: (k,int(v)),
     },
     'supply_levels': {
         'oid': PRINTER_MIB_OID + '.11.1.1.9',
         'type': 'tree',
-        'decode': lambda k,v: (k,int(v)),
+        'decode': lambda k, v: (k,int(v)),
     },
 }
 
 class LaserjetSNMPControl(dict):
-    def __init__(self,snmp_client):
+    def __init__(self, snmp_client):
         self.client = snmp_client
 
-    def __getattr__(self,attr):
+    def __getattr__(self, attr):
         if attr in HP_PRINTER_OID_MAP.keys():
             d = HP_PRINTER_OID_MAP[attr]
             oid = d['oid']
-            dtype = d.get('type','get')
+            dtype = d.get('type', 'get')
             if dtype == 'get':
                 value = self.client.get(oid)[1]
                 if value == '':
                     return None
                 return d['decode'](value)
             elif dtype == 'tree':
-                return [d['decode'](k,v) for k,v in self.client.walk(oid).items()]
+                return [d['decode'](k, v) for k, v in self.client.walk(oid).items()]
         raise AttributeError('No such LaserjetSNMPControl attribute: %s' % attr)
 
     def supply_level_details(self):
-        levels = dict(getattr(self,'supply_names'))
-        details = dict((k.split('.')[-1],{'name':levels[k]}) for k,v in levels.items() )
-        for oid,maxlevel in getattr(self,'supply_max_levels'):
+        levels = dict(getattr(self, 'supply_names'))
+        details = dict((k.split('.')[-1], {'name':levels[k]}) for k, v in levels.items() )
+        for oid, maxlevel in getattr(self, 'supply_max_levels'):
             index = oid.split('.')[-1]
             details[index]['max'] = maxlevel
-        for oid,level in getattr(self,'supply_levels'):
+        for oid, level in getattr(self, 'supply_levels'):
             index = oid.split('.')[-1]
             details[index]['level'] = level
         return dict(
-            (details[i]['name'],{
+            (details[i]['name'], {
                 'index': i,
                 'max': details[i]['max'],
                 'level': details[i]['level'],
@@ -189,27 +190,27 @@ class LaserjetSNMPControl(dict):
             }) for i in details.keys()
         )
 
-    def reset(self,resettype=DEFAULT_RESET_TYPE):
+    def reset(self, resettype=DEFAULT_RESET_TYPE):
         try:
             resettype = rfc1902.Integer(RESET_TYPE_MAP[resettype])
         except KeyError:
             raise ValueError('Invalid reset type: %s' % resettype)
         oid = PRINTER_MIB_OID + '.5.1.1.3.1'
-        return self.client.set(oid,resettype)
+        return self.client.set(oid, resettype)
 
-    def testpage(self,pagetype=DEFAULT_TESTPAGE):
+    def testpage(self, pagetype=DEFAULT_TESTPAGE):
         try:
             pagetype = rfc1902.Integer(TESTPAGE_MAP[pagetype])
         except KeyError:
             raise ValueError('Invalid testpage type: %s' % pagetype)
         oid = HP_LASERJET_MIB_OID + '.4.2.1.1.5.2.0'
-        return self.client.set(oid,pagetype)
+        return self.client.set(oid, pagetype)
 
 if __name__ == '__main__':
     import sys
 
     ljclient = LaserjetSNMPControl(
-        SNMPClient(sys.argv[1],SNMPv1Auth(community=sys.argv[2]))
+        SNMPClient(sys.argv[1], SNMPv1Auth(community=sys.argv[2]))
     )
     #ljclient.client.logger.set_level('DEBUG')
     #for k in sorted(HP_PRINTER_OID_MAP.keys()): print k, getattr(ljclient,k)
