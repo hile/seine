@@ -4,7 +4,7 @@ import os
 import glob
 from setuptools import setup, find_packages
 
-VERSION='2.1.0'
+VERSION='2.2.0'
 README = open(os.path.join(os.path.dirname(__file__), 'README.txt'), 'r').read()
 
 setup(
