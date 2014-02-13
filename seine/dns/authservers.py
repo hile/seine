@@ -1,12 +1,12 @@
 """
 DNS Zone authorized server processing classes
 """
-import logging
 
+from seine.dns import DNSError
 from seine.dns.resolver import resolve_records, QueryError
 from seine.dns.delegation import DNSZoneDelegation
 
-class AuthorizedZoneServers(dict):
+class AuthorizedZoneServers(object):
     """DNS zone authorized servers
 
     Parser for authorized servers for DNS domain
@@ -16,21 +16,22 @@ class AuthorizedZoneServers(dict):
         self.domain = domain
         self.timeout = timeout
 
-        self.log = logging.getLogger('modules')
-
-        self.delegations = {}
         self.SOA = {}
         self.NS  = {}
 
-        if ipv4 is True:
-            self.delegations['IPv4'] = DNSZoneDelegation(domain,
-                rrtype='A', rootfile=rootfile, timeout=timeout
+        if ipv4:
+            self.ipv4_delegation = DNSZoneDelegation(
+                domain, rrtype='A', rootfile=rootfile, timeout=timeout
             )
+        else:
+            self.ipv4_delegation = None
 
-        if ipv6 is True:
-            self.delegations['IPv6'] = DNSZoneDelegation(domain,
-                rrtype='AAAA', rootfile=rootfile, timeout=timeout
+        if ipv6:
+            self.ipv6_delegation = DNSZoneDelegation(
+                domain, rrtype='AAAA', rootfile=rootfile, timeout=timeout
             )
+        else:
+            self.ipv6_delegation = None
 
     def update_delegations(self):
         """Update zone delegations
@@ -38,11 +39,11 @@ class AuthorizedZoneServers(dict):
         Query and update delegations for zone
 
         """
-        for k, delegation in self.delegations.items():
-            if delegation is None:
-                continue
-            self.log.debug('Updating %s %s delegations' % (self.domain, k))
-            delegation.query_ns_delegation()
+        if self.ipv4_delegation is not None:
+            self.ipv4_delegation.update_delegations()
+
+        if self.ipv6_delegation is not None:
+            self.ipv6_delegation.update_delegations()
 
     def query_server(self, server, rrtype):
         """Query RR for server
@@ -50,7 +51,6 @@ class AuthorizedZoneServers(dict):
         Resolve this zone's RR from given server
 
         """
-        self.log.debug('Querying %s records from %s' % (rrtype, server))
         return resolve_records(
             query=self.domain,
             rrtype=rrtype,
@@ -66,12 +66,27 @@ class AuthorizedZoneServers(dict):
         TODO - actually compare SOA records with each other
 
         """
-        for addrtype, delegation in self.delegations.items():
-            self.log.debug('Checking %s SOA records' % (addrtype))
-            for s in [s['address'] for s in delegation]:
-                self.SOA[s] = self.query_server(s, 'SOA')
-                for r in self.SOA[s]['results']:
-                    print r
+        if not self.ipv4_delegation and not self.ipv6_delegation:
+            self.update_delegations()
+
+        soa_records = {}
+        if self.ipv4_delegation is not None:
+            for delegation in self.ipv4_delegation:
+                if delegation.name not in soa_records.keys():
+                    soa_records[delegation.name] = delegation.soa
+
+        if self.ipv6_delegation is not None:
+            for server in self.ipv6_delegation:
+                if delegation.name not in soa_records.keys():
+                    soa_records[delegation.name] = delegation.soa
+
+        for server, server_soa in soa_records.items():
+            for other, soa in soa_records.items():
+                if server == other:
+                    continue
+
+                if server_soa != soa:
+                    raise DNSError('SOA records do not match: %s and %s' % (server, delegation.soa))
 
     def validate_NS(self):
         """Validate zone NS records
@@ -81,10 +96,20 @@ class AuthorizedZoneServers(dict):
         TODO - actually compare NS records with each other and TLD delegation
 
         """
-        for addrtype, delegation in self.delegations.items():
-            self.log.debug('Checking %s NS records' % (addrtype))
-            for s in [s['address'] for s in delegation]:
-                self.NS[s] = self.query_server(s, 'NS')
-                for r in self.NS[s]['results']:
-                    print r
+        if self.ipv4_delegation:
+            for delegation in self.ipv4_delegation:
+                if self.ipv4_delegation.delegated_servers != delegation.nameservers:
+                    raise DNSError('%s: servers from delegation and server differ: %s and %s' % (
+                        delegation,
+                        ','.join('%s' % s for s in self.ipv4_delegation.delegated_servers),
+                        ','.join('%s' % s for s in delegation.nameservers)
+                    ))
 
+        if self.ipv6_delegation:
+            for delegation in self.ipv6_delegation:
+                if self.ipv6_delegation.delegated_servers != delegation.nameservers:
+                    raise DNSError('%s: servers from delegation and server differ: %s and %s' % (
+                        delegation,
+                        ','.join('%s' % s for s in self.ipv6_delegation.delegated_servers),
+                        ','.join('%s' % s for s in delegation.nameservers)
+                    ))

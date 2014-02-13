@@ -9,8 +9,8 @@ as an easily understandable dictionary.
 """
 
 import socket
-import logging
 
+from seine.dns import DNSError
 import dns.resolver, dns.query, dns.rdatatype
 import dns.rdtypes.ANY, dns.rdtypes.IN
 
@@ -78,7 +78,8 @@ def resolve_records(query, nameserver, rrtype='A', timeout=5):
         raise ValueError('Invalid query timeout value: %s' % timeout)
 
     try:
-        response = dns.query.udp(q=dns.message.make_query(query, rdtype),
+        response = dns.query.udp(
+            q=dns.message.make_query(query, rdtype),
             where=nameserver, timeout=timeout
         )
     except socket.error, (ecode, emsg):
@@ -97,6 +98,7 @@ def resolve_records(query, nameserver, rrtype='A', timeout=5):
             entry = dict([(k, getattr(r, k)) for k in attrs])
             entry['rdclass'] = dns.rdataclass.to_text(r.rdclass)
             entry['rrtype'] = dns.rdatatype.to_text(r.rdtype)
+
             authority.append(entry)
 
     additional = []

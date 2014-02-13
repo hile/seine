@@ -4,7 +4,6 @@ Module to update and process the list of valid TLD domains from IANA.
 
 import os
 import re
-import logging
 
 from seine.url import HTTPRequest, HTTPRequestError
 
@@ -34,14 +33,12 @@ class TLDCache(list):
     - check if a given value is valid TLD with has_key
     - iterate all valid TLDs by iteraing the class itself
     """
-    __slots__ = ['__next', 'log', 'names', 'path' ]
     def __init__(self, path=None):
         """
         You can pass alternative file path to be used in all operations,
         or use the default file.
         """
 
-        self.log = logging.getLogger('modules')
         self.__next = 0
         self.path = path
 
@@ -53,7 +50,6 @@ class TLDCache(list):
 
                 fdir = os.path.dirname(f)
                 if not os.path.isdir(fdir):
-                    self.log.debug('Trying to create %s and %s' % (fdir, f))
                     try:
                         os.makedirs(os.path.dirname(f))
                     except IOError, (ecode, emsg):
@@ -71,8 +67,6 @@ class TLDCache(list):
                         continue
                     except OSError, (ecode, emsg):
                         continue
-
-            self.log.debug('Using cache file %s' % self.path)
 
     def __repr__(self):
         return 'TLDCache %d entries' % len(self)
@@ -93,11 +87,9 @@ class TLDCache(list):
 
         """
 
-        self.log.debug('Loading TLD cache file %s' % self.path)
         self.__delslice__(0, len(self))
 
         if not os.path.isfile(self.path):
-            self.log.info('TLD cache not loaded, no such file: %s' % self.path)
             return
 
         try:
@@ -106,7 +98,6 @@ class TLDCache(list):
                 if l.strip() == '' or l.startswith('#'):
                     continue
                 if not re.match(RE_TLDNAME, l.lower()):
-                    self.log.debug('Skipping invalid entry: %s' % l)
                     continue
                 self.append(l.lower())
 
@@ -125,7 +116,6 @@ class TLDCache(list):
         """
 
         cache_dir = os.path.dirname(self.path)
-        self.log.debug('Updating TLD cache file in %s' % self.path)
 
         if not os.path.isdir(cache_dir):
             try:
