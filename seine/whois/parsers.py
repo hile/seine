@@ -5,55 +5,34 @@ Parser classes for various whois output formats
 
 import os
 
-from seine.whois.servers import WhoisError
+from seine.whois import WhoisError
+from seine.whois.formats.ficora import ficora
+from seine.whois.formats.gtld import gtld
+from seine.whois.formats.nominet import nominet
+from seine.whois.formats.saudinic import saudinic
 
-TLD_FORMAT_MAP = {
-    'gtld':     [ 'com', 'edu', 'gov', 'mil', 'net', 'org', 'arpa' ],
-    'ficora':   ['fi'],
-    'saudinic': ['sa'],
-    'nominet':  ['uk'],
-}
+WHOIS_PARSERS = (
+    ficora, gtld, nominet, saudinic
+)
+
 
 class WhoisData(dict):
-    def __init__(self,domain,data):
-        self.domain = domain 
+    def __init__(self, domain):
+        self.parsers = WHOIS_PARSERS
+        self.domain = domain
 
-        tld = self.domain.split('.')[-1]
-        self.parser = None
-        for fmt,tlds in TLD_FORMAT_MAP.items():
-            if tld not in tlds:
-                continue
-            path = 'seine.whois.formats.%s' % fmt
-            try:
-                m = __import__(path,globals(),fromlist=[fmt])
-                self.parser = getattr(m,'parse')
-            except ImportError,emsg:
-                raise WhoisError(
-                    'Error importing whois data parser for %s: %s' % 
-                    (fmt,emsg)
-                )
-            except AttributeError,emsg:
-                raise WhoisError(
-                    'Error importing whois data parser for %s: %s' % 
-                    (fmt,emsg)
-                )
-        if self.parser is None:
-            raise WhoisError('No parser defined for TLD %s' % tld)
-        self.update(self.parser(domain,data))
+    def parse(self, data):
+        data_parsers = [x for x in self.parsers if x().matches_domain(self.domain)]
+        if len(data_parsers) > 1:
+            raise WhoisError('BUG: more than one parser for domain %s: %s' % (
+                self.domain,
+                [x.name for x in data_parsers]
+            ))
 
-if __name__ == '__main__':
-    import sys
-    for domain in sys.argv[1:]:
-        path = '/tmp/whois-%s.txt' % domain
-        if not os.path.isfile(path):
-            print 'No such file: %s' % path
-            continue
-        wd = WhoisData(domain,open(path,'r').readlines())
-        for k in sorted(wd.keys()):
-            v = wd[k]
-            print k
-            if type(v) == list:
-                print '\t%s' % '\n\t'.join(v)
-            else:
-                print '\t%s' % v
+        if not data_parsers:
+            raise WhoisError('No whois data parser found for domain %s' % self.domain)
+
+        formatter = data_parsers[0]()
+        formatter.parse(self.domain, data)
+        return self.update(formatter.items())
 

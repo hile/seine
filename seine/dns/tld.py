@@ -73,7 +73,7 @@ class TLDCache(list):
 
     def __getitem__(self, item):
         if len(self) == 0:
-            raise DNSCacheError('TLD data file %s not yet downloaded.' % self.path)
+            self.update()
 
         try:
             return list.__getitem__(self, self.index(item))
