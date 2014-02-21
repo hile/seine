@@ -21,6 +21,10 @@ from seine.whois import WhoisError
 
 SERVER_CACHE = os.path.join(os.getenv('HOME'), '.whoisservers.cache')
 
+CACHE_FILES = (
+    '/var/cache/whois/servers.cache',
+     os.path.join(os.getenv('HOME'), '.whois', 'servers.cache')
+)
 SEARCH_DOMAIN = 'whois-servers.net'
 
 WHOIS_PORT = 43
@@ -30,6 +34,7 @@ WHOIS_BUFFER_SIZE = 1024
 TLD_REQUIRES_EQUALS = ['com']
 
 logger = logging.getLogger(__file__)
+
 
 class WhoisServer(object):
     def __init__(self, tld, address, timeout=WHOIS_SERVER_TIMEOUT):
@@ -54,6 +59,7 @@ class WhoisServer(object):
 
     def get_response(self, buffer_size=WHOIS_BUFFER_SIZE):
         raise NotImplementedError('Must be implemented in child class')
+
 
 class IPv4WhoisServer(WhoisServer):
     def connect(self):
@@ -167,12 +173,35 @@ class WhoisServerCache(dict):
         if cache_path is not None:
             cache_path = os.path.expandvars(os.path.expanduser(cache_path))
         else:
-            cache_path = SERVER_CACHE
-        self.cache_path = cache_path
+            for f in CACHE_FILES:
+                if os.path.isfile(f) and os.access(f, os.W_OK):
+                    self.cache_path = f
+                    break
+
+                fdir = os.path.dirname(f)
+                if not os.path.isdir(fdir):
+                    try:
+                        os.makedirs(os.path.dirname(f))
+                    except IOError, (ecode, emsg):
+                        continue
+                    except OSError, (ecode, emsg):
+                        continue
+
+                if not os.path.isfile(f):
+                    try:
+                        open(f, 'w').write('\n')
+                        os.unlink(f)
+                        self.cache_path = f
+                        break
+                    except IOError, (ecode, emsg):
+                        continue
+                    except OSError, (ecode, emsg):
+                        continue
 
         try:
             self.tlds = TLDCache(tld_cache_path)
-            self.tlds.load()
+            if not self.tlds.is_downloaded:
+                self.tlds.download()
         except DNSCacheError, emsg:
             raise WhoisEror(emsg)
 
