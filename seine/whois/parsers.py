@@ -21,7 +21,52 @@ class WhoisData(dict):
         self.parsers = WHOIS_PARSERS
         self.domain = domain
 
-    def parse(self, data):
+    def __repr__(self):
+        return 'WHOIS for %s' % self.domain
+
+    @property
+    def name(self):
+        try:
+            return self['domainname']
+        except KeyError:
+            return self.domain
+
+    @property
+    def status(self):
+        try:
+            return self['status']
+        except KeyError:
+            return []
+
+    @property
+    def nameservers(self):
+        try:
+            return sorted(x.lower() for x in self['nameservers'])
+        except KeyError:
+            return []
+
+    @property
+    def created(self):
+        try:
+            return self['created']
+        except KeyError:
+            return None
+
+    @property
+    def expires(self):
+        try:
+            return self['expires']
+        except KeyError:
+            return None
+
+    @property
+    def modified(self):
+        try:
+            return self['modified']
+        except KeyError:
+            return None
+
+    def query(self, data):
         data_parsers = [x for x in self.parsers if x().matches_domain(self.domain)]
         if len(data_parsers) > 1:
             raise WhoisError('BUG: more than one parser for domain %s: %s' % (
@@ -34,5 +79,6 @@ class WhoisData(dict):
 
         formatter = data_parsers[0]()
         formatter.parse(self.domain, data)
-        return self.update(formatter.items())
+        self.update(formatter.items())
+
 

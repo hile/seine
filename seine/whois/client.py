@@ -28,7 +28,7 @@ class WhoisClient(object):
         self.cache = WhoisServerCache()
         self.cache.load()
 
-    def parse(self, domain):
-        parser = WhoisData(domain)
-        parser.parse(self.cache.query(domain))
-        return parser
+    def query(self, domain):
+        data = WhoisData(domain)
+        data.query(self.cache.query(domain))
+        return data
