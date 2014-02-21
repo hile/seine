@@ -21,7 +21,7 @@ from seine.whois import WhoisError
 
 CACHE_FILES = (
     '/var/cache/whois/servers.cache',
-    '/tmp/tld-%s' % os.geteuid(),
+    '/tmp/whois-%s/servers.cache' % os.geteuid(),
 )
 SEARCH_DOMAIN = 'whois-servers.net'
 
@@ -168,8 +168,11 @@ class TLDWhoisServerList(object):
 
 class WhoisServerCache(dict):
     def __init__(self, cache_path=None, tld_cache_path=None):
+        self.cache_path = None
+
         if cache_path is not None:
-            cache_path = os.path.expandvars(os.path.expanduser(cache_path))
+            self.cache_path = os.path.expandvars(os.path.expanduser(cache_path))
+
         else:
             for f in CACHE_FILES:
                 if os.path.isfile(f) and os.access(f, os.W_OK):
@@ -195,6 +198,9 @@ class WhoisServerCache(dict):
                         continue
                     except OSError, (ecode, emsg):
                         continue
+
+        if self.cache_path is None:
+            raise WhoisError('ERROR: No whois cache path defined')
 
         try:
             self.tlds = TLDCache(tld_cache_path)
