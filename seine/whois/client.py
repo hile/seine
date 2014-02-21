@@ -22,6 +22,7 @@ WHOIS_BUFFER_SIZE = 1024
 
 TLD_REQUIRES_EQUALS = ['com']
 
+logger = logging.getLogger()
 
 class WhoisClient(object):
     def __init__(self):
@@ -30,4 +31,10 @@ class WhoisClient(object):
     def query(self, domain):
         data = WhoisData(domain)
         data.query(self.cache.query(domain))
+        try:
+        	self.cache.save()
+        except WhoisError, emsg:
+        	logger.debug(emsg)
+        	pass
+
         return data
