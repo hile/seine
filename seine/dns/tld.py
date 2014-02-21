@@ -10,8 +10,8 @@ from seine.url import HTTPRequest, HTTPRequestError
 IANA_TLD_URL = 'http://data.iana.org/TLD/tlds-alpha-by-domain.txt'
 
 CACHE_DIRECTORIES = [
-    '/var/cache/dns',
-    os.path.join(os.getenv('HOME'), '.tldcache')
+    '/var/cache/tld',
+    '/tmp/tld-%s' % os.geteuid(),
 ]
 
 CACHE_FILES = map(lambda d:

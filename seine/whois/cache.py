@@ -19,11 +19,9 @@ from seine.address import IPv4Address, IPv6Address
 from seine.dns.tld import TLDCache, DNSCacheError
 from seine.whois import WhoisError
 
-SERVER_CACHE = os.path.join(os.getenv('HOME'), '.whoisservers.cache')
-
 CACHE_FILES = (
     '/var/cache/whois/servers.cache',
-     os.path.join(os.getenv('HOME'), '.whois', 'servers.cache')
+    '/tmp/tld-%s' % os.geteuid(),
 )
 SEARCH_DOMAIN = 'whois-servers.net'
 
