@@ -26,7 +26,6 @@ TLD_REQUIRES_EQUALS = ['com']
 class WhoisClient(object):
     def __init__(self):
         self.cache = WhoisServerCache()
-        self.cache.load()
 
     def query(self, domain):
         data = WhoisData(domain)
