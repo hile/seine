@@ -689,13 +689,15 @@ class IPv6Address(dict):
                 if subs[0] != '':
                     start = ''.join(['%04x' % int(s,16) for s in subs[:subs.index('')]])
                     end = ''.join(['%04x' % int(s,16) for s in subs[subs.index('')+1:]])
-                    hex_bitstring = '0x%s%s%s' % (start,'0'*(32-len(start)-len(end)),end)
+                    bitstring = '%s%s%s' % (start,'0'*(32-len(start)-len(end)),end)
                 else:
                     end = ''.join(['%04x' % int(s,16) for s in subs[1:]])
-                    hex_bitstring = '0x%s%s' % ('0'*(32-len(end)),end)
+                    bitstring = '%s%s' % ('0'*(32-len(end)),end)
 
             else:
-                hex_bitstring = ''.join(['%04x' % int(s,16) for s in subs])
+                bitstring = ''.join(['%04x' % int(s,16) for s in subs])[2:]
+
+            hex_bitstring = '0x%s' % bitstring
 
             addrval = long(hex_bitstring, 16)
             network_bitstring = '0x%032x' % (
@@ -711,10 +713,10 @@ class IPv6Address(dict):
 
             try:
                 revnibbles = '.'.join(
-                    reversed([hex_bitstring[x] for x in range(0, (bitmask/4))])
+                    reversed([bitstring[x] for x in range(0, len(bitstring))])
                 )
             except IndexError, emsg:
-                raise ValueError('Error splitting hexstring for revnibbles: %s' % emsg)
+                raise ValueError('Error splitting bitstring for revnibbles: %s' % emsg)
 
         except ValueError,emsg:
             raise ValueError('Invalid IPv6 address: %s: %s' % (value, emsg))
