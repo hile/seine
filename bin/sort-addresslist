@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+
+import sys
+import argparse
+
+from systematic.shell import Script
+from seine.address import IPv4Address, IPv6Address
+
+LINE_PREFIXES = ( 'network', 'address', 'ipaddress', )
+
+DESCRIPTION = """Sort list of IPv4 or IPv6 addresses
+
+By default reads data from stdin, but can be passed a file to
+process as well.
+
+Only one type of addresses can be present in one file. The lines
+can start with following prefix strings:
+
+  %s
+""" % ' '.join(LINE_PREFIXES)
+
+script = Script(description=DESCRIPTION)
+script.add_argument('datafile', nargs='?',
+    type=argparse.FileType('r'), default=sys.stdin, help='Input file to sort'
+)
+args = script.parse_args()
+
+netmap = {}
+
+for l in args.datafile.read().split('\n'):
+    if l.strip() == '':
+        continue
+    address = l.strip()
+    for prefix in LINE_PREFIXES:
+        if address[:len(prefix)] == prefix:
+            address = address[len(prefix):]
+            break
+
+    try:
+        address = IPv4Address(address)
+    except ValueError:
+        try:
+            address = IPv6Address(address)
+        except ValueError:
+            script.exit(1, 'ERROR parsing %s' % address)
+
+    netmap[address] = l
+
+for address in sorted(netmap.keys()):
+    print netmap[address]
+
