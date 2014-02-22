@@ -16,6 +16,7 @@ clean:
 
 build:
 	python setup.py build
+	git submodule update pacparser
 	make -C pacparser/src pymod
 
 ifdef PREFIX
