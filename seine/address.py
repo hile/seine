@@ -291,13 +291,13 @@ class IPv4Address(object):
     def __cmp__(self, other):
         if isinstance(other, basestring):
             other = IPv4Address(other)
-            return cmp(self.raw_value, other.address)
+            return cmp(self.raw_value, other.raw_value)
 
-        if isinstance(other, int):
+        elif hasattr(other, 'raw_value'):
+            return cmp(self.raw_value, other.raw_value)
+
+        elif isinstance(other, int):
             return cmp(self.raw_value, other)
-
-        elif hasattr(other, 'address'):
-            return cmp(self.raw_value, other.address)
 
         else:
             raise ValueError("Can't compare IPv4Address to %s" % type(other))
