@@ -3,10 +3,12 @@
 Simple wrapper to show some details for addresses given on command line.
 """
 
-import sys,os,logging,requests
+import sys
+import os
+import requests
 
-from systematic.shell import Script,ScriptError
-from seine.address import IPv4Address,IPv6Address
+from systematic.shell import Script, ScriptError
+from seine.address import IPv4Address, IPv6Address
 
 # Template URLs to create links
 IPV4_ARIN_QUERY = 'http://whois.arin.net/rest/nets;q=%(ipaddress)s?showDetails=true&showARIN=false'

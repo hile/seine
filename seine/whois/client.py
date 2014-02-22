@@ -32,9 +32,9 @@ class WhoisClient(object):
         data = WhoisData(domain)
         data.query(self.cache.query(domain))
         try:
-        	self.cache.save()
+            self.cache.save()
         except WhoisError, emsg:
-        	logger.debug(emsg)
-        	pass
+            logger.debug(emsg)
+            pass
 
         return data

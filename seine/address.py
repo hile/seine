@@ -482,12 +482,12 @@ class IPv4Address(object):
         if self.bitmask == 0:
             return True
 
-        if self.bitmask == 32 and ip.address != self.raw_value:
+        if self.bitmask == 32 and ip.raw_value != self.raw_value:
             return False
         else:
             first = self.raw_value & self.mask
             last = (self.raw_value & self.mask) + (UINT_MAX &~ self.mask)
-            if ip.address < first or ip.address > last:
+            if ip.raw_value < first or ip.raw_value > last:
                 return False
 
         return True
@@ -500,17 +500,17 @@ class IPv4Address(object):
         ip = IPv4Address(address)
         if self.bitmask == 0:
             return True
-        if self.bitmask == 32 and ip.address != self.raw_value:
+        if self.bitmask == 32 and ip.raw_value != self.raw_value:
             return False
 
         if self.bitmask == 31:
             first = self.raw_value & self.mask
-            if ip.address < first or ip.address > first+1:
+            if ip.raw_value < first or ip.raw_value > first+1:
                 return False
         else:
             first = self.raw_value & self.mask
             last = (self.raw_value & self.mask) + (UINT_MAX &~ self.mask)
-            if ip.address <= first or ip.address >= last:
+            if ip.raw_value <= first or ip.raw_value >= last:
                 return False
 
         return True
@@ -915,17 +915,17 @@ class IPv6Address(dict):
 
         return True
 
-    def hostInNetwork(self,value):
-        if type(value) is not IPv6Address:
+    def hostInNetwork(self, address):
+        if type(address) is not IPv6Address:
             try:
-                value = IPv6Address(value)
+                address = IPv6Address(address)
             except ValueError,e:
-                raise ValueError('Invalid IPv6Address: %s' % value)
+                raise ValueError('Invalid IPv6Address: %s' % address)
 
-        value = int(value.bitstring,16)
-        first = int(self.network_bitstring,16)+1
-        last = int(self.network_bitstring,16)+2**(128-self.bitmask)-1
-        if value < first or value > last:
+        address = int(address.bitstring, 16)
+        first = int(self.network_bitstring, 16) + 1
+        last = int(self.network_bitstring, 16) + 2**(128-self.bitmask) - 1
+        if address < first or address > last:
             return False
 
         return True
