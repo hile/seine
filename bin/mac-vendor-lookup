@@ -1,0 +1,18 @@
+#!/usr/bin/env python
+"""
+Enumerate and sort ARP address lists from arp -an
+"""
+
+from systematic.shell import Script,ScriptError
+from seine.oui import OUIPrefixLookup
+
+script = Script()
+script.add_argument('addresses',nargs='*',help='MAC addresses to lookup')
+args = script.parse_args()
+
+ouis = OUIPrefixLookup()
+
+for addr in args.addresses:
+    prefix = ouis.match(addr)
+    if prefix:
+        print '%s %s' % (addr, prefix)
