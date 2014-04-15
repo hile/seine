@@ -70,9 +70,54 @@ class EthernetMACAddress(object):
             raise ValueError('Not a Ethernet MAC address: %s' % address)
 
         self.address = ':'.join(['%02x'%p for p in parts])
+        self.value = sum([parts[-(len(parts)-i)]<<8*(len(parts)-i-1) for i in range(len(parts))])
+
+    def __hash__(self):
+        return self.value
+
+    def __int__(self):
+        return self.value
+
+    def __long__(self):
+        return self.value
 
     def __repr__(self):
         return self.address
+
+    def __cmp__(self, other):
+        if isinstance(other, EthernetMACAddress):
+            return cmp(self.value, other.value)
+        else:
+            try:
+                other = long(other)
+                return cmp(self.value, other)
+            except ValueError:
+                try:
+                    other = EthernetMACAddress(other)
+                    return cmp(self.value, other.value)
+                except ValueError:
+                    __parseaddress__
+
+        raise ValueError('Error comparing EthernetMACAddress to %s' % type(other))
+
+    def __eq__(self, other):
+        return self.__cmp__(other) == 0
+
+    def __ne__(self, other):
+        return self.__cmp__(other) != 0
+
+    def __lt__(self, other):
+        return self.__cmp__(other) < 0
+
+    def __le__(self, other):
+        return self.__cmp__(other) <= 0
+
+    def __gt__(self, other):
+        return self.__cmp__(other) > 0
+
+    def __ge__(self, other):
+        return self.__cmp__(other) >= 0
+
 
 class IPv4Address(object):
     """
