@@ -22,6 +22,7 @@ setup(
     long_description = README,
     install_requires = [
         'systematic',
+        'requests',
         'dnspython',
         'pyip',
         'pyasn1',
