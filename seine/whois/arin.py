@@ -65,6 +65,9 @@ class ARINReverseIP(list):
 
     """
     def __init__(self, address):
+        for attr in ('name', 'handle', 'ref', 'comment', 'registered', 'updated', ):
+            setattr(self, attr, None)
+
         try:
             self.address = IPv4Address(address).ipaddress
             self.address_format = IPv4Address
@@ -82,18 +85,24 @@ class ARINReverseIP(list):
         return '%s ARIN response %d netblocks' % (self.address, len(self))
 
     def __parse_date_entry(self, value):
+        if value is None:
+            return None
         try:
             return dateparser(value['$'])
         except ValueError, KeyError:
             raise WhoisError('Error parsing date from %s' % value)
 
     def __parse_number_entry(self, data):
+        if value is None:
+            return None
         try:
             return int(data['$'])
         except KeyError:
             raise WhoisError('Error parsing number field %s' % data)
 
     def __parse_string_entry(self, data):
+        if value is None:
+            return None
         if 'line' in data:
             try:
                 data = data['line']
@@ -114,6 +123,8 @@ class ARINReverseIP(list):
                 raise WhoisError('Error parsing string field %s' % data)
 
     def __parse_address_entry(self, data):
+        if value is None:
+            return None
         try:
             return self.address_format(data['$'])
         except ValueError, KeyError:
