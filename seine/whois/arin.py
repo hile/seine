@@ -65,7 +65,7 @@ class ARINReverseIP(list):
 
     """
     def __init__(self, address):
-        for attr in ('name', 'handle', 'ref', 'comment', 'registered', 'updated', ):
+        for attr in ('_name', '_handle', '_ref', '_comment', '_registered', '_updated', ):
             setattr(self, attr, None)
 
         try:
