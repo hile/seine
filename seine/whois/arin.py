@@ -28,19 +28,18 @@ class ARINNetBlock(object):
     """
     def __init__(self, reverse, data):
         self.reverse = reverse
-        block = data['netBlock']
-        self.description = block['description']['$']
-        self.type = block['type']['$']
+        self.description = data['description']['$']
+        self.type = data['type']['$']
 
-        self.mask = int(block['cidrLength']['$'])
+        self.mask = int(data['cidrLength']['$'])
 
         if reverse.address_format == IPv4Address:
-            self.start = IPv4Address(block['startAddress']['$'])
-            self.end = IPv4Address(block['endAddress']['$'])
+            self.start = IPv4Address(data['startAddress']['$'])
+            self.end = IPv4Address(data['endAddress']['$'])
             self.network = IPv4Address('%s/%s' % (self.start.address, self.mask))
         elif reverse.address_format == IPv6Address:
-            self.start = IPv6Address(block['startAddress']['$'])
-            self.end = IPv6Address(block['endAddress']['$'])
+            self.start = IPv6Address(data['startAddress']['$'])
+            self.end = IPv6Address(data['endAddress']['$'])
             self.network = IPvAddress('%s/%s' % (self.start.address, self.mask))
 
     def __repr__(self):
@@ -231,6 +230,10 @@ def ARINReverseIPQuery(address, proxies={}):
         except KeyError:
             continue
 
-    entry.append(ARINNetBlock(entry, net['netBlocks']))
+    blocks = net['netBlocks']['netBlock']
+    if isinstance(blocks, list):
+        entry.extend(ARINNetBlock(entry, block) for block in blocks)
+    else:
+        entry.append(ARINNetBlock(entry, blocks))
     return entry
 
