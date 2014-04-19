@@ -93,7 +93,7 @@ class ARINReverseIP(list):
             raise WhoisError('Error parsing date from %s' % value)
 
     def __parse_number_entry(self, data):
-        if value is None:
+        if data is None:
             return None
         try:
             return int(data['$'])
@@ -101,7 +101,7 @@ class ARINReverseIP(list):
             raise WhoisError('Error parsing number field %s' % data)
 
     def __parse_string_entry(self, data):
-        if value is None:
+        if data is None:
             return None
         if 'line' in data:
             try:
@@ -123,7 +123,7 @@ class ARINReverseIP(list):
                 raise WhoisError('Error parsing string field %s' % data)
 
     def __parse_address_entry(self, data):
-        if value is None:
+        if data is None:
             return None
         try:
             return self.address_format(data['$'])
