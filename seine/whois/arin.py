@@ -30,13 +30,13 @@ class ARINNetBlock(object):
         self.reverse = reverse
         self.description = data['description']['$']
         self.type = data['type']['$']
-
         self.mask = int(data['cidrLength']['$'])
 
         if reverse.address_format == IPv4Address:
             self.start = IPv4Address(data['startAddress']['$'])
             self.end = IPv4Address(data['endAddress']['$'])
             self.network = IPv4Address('%s/%s' % (self.start.address, self.mask))
+
         elif reverse.address_format == IPv6Address:
             self.start = IPv6Address(data['startAddress']['$'])
             self.end = IPv6Address(data['endAddress']['$'])
@@ -84,13 +84,13 @@ class ARINReverseIP(list):
     def __repr__(self):
         return '%s ARIN response %d netblocks' % (self.address, len(self))
 
-    def __parse_date_entry(self, value):
-        if value is None:
+    def __parse_date_entry(self, data):
+        if data is None:
             return None
         try:
-            return dateparser(value['$'])
+            return dateparser(data['$'])
         except ValueError, KeyError:
-            raise WhoisError('Error parsing date from %s' % value)
+            raise WhoisError('Error parsing date from %s' % data)
 
     def __parse_number_entry(self, data):
         if data is None:
@@ -246,5 +246,6 @@ def ARINReverseIPQuery(address, proxies={}):
         entry.extend(ARINNetBlock(entry, block) for block in blocks)
     else:
         entry.append(ARINNetBlock(entry, blocks))
+
     return entry
 
