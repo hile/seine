@@ -1,4 +1,4 @@
-# vim: noexpandtab, tabstop=4
+# vim: noexpandtab  tabstop=4
 #
 # Install the scrips, configs and python modules
 #
@@ -23,7 +23,7 @@ build:
 ifdef PREFIX
 install_modules: build
 	python setup.py --no-user-cfg install --prefix=${PREFIX}
-	$(MAKE) -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)"
+	[ "$(SYSTEM)" != "FreeBSD" ] &&  $(MAKE) -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)" && true
 install: install_modules 
 	install -m 0755 -d $(PREFIX)/bin
 	for f in bin/*; do echo " $(PREFIX)/$$f";install -m 755 $$f $(PREFIX)/bin/;done;
