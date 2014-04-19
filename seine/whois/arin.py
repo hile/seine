@@ -65,9 +65,6 @@ class ARINReverseIP(list):
 
     """
     def __init__(self, address):
-        for attr in ('_name', '_handle', '_ref', '_comment', '_registered', '_updated', ):
-            setattr(self, attr, None)
-
         try:
             self.address = IPv4Address(address).ipaddress
             self.address_format = IPv4Address
@@ -132,49 +129,49 @@ class ARINReverseIP(list):
 
     @property
     def name(self):
-        return self._name
+        return hasattr(self, '_name') and self._name or ''
     @name.setter
     def name(self, value):
         self._name = self.__parse_string_entry(value)
 
     @property
     def handle(self):
-        return self._ref
+        return hasattr(self, '_handle') and self._handle or ''
     @handle.setter
     def handle(self, value):
         self._handle = self.__parse_string_entry(value)
 
     @property
     def ref(self):
-        return self._ref
+        return hasattr(self, '_ref') and self._ref or ''
     @ref.setter
     def ref(self, value):
         self._ref = self.__parse_string_entry(value)
 
     @property
     def comment(self):
-        return self._comment
+        return hasattr(self, '_comment') and self._comment or ''
     @comment.setter
     def comment(self, value):
            self._comment = self.__parse_string_entry(value)
 
     @property
     def version(self):
-        return self._version
+        return hasattr(self, '_version') and self._version or 0
     @version.setter
     def version(self, value):
         self._version = self.__parse_number_entry(value)
 
     @property
     def registered(self):
-        return self._registered
+        return hasattr(self, '_registered') and self._registered or None
     @registered.setter
     def registered(self, value):
         self._registered = self.__parse_date_entry(value)
 
     @property
     def updated(self):
-        return self._updated
+        return hasattr(self, '_updated') and self._updated or None
     @updated.setter
     def updated(self, value):
         self._updated = self.__parse_date_entry(value)
