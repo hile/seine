@@ -23,7 +23,7 @@ build:
 ifdef PREFIX
 install_modules: build
 	python setup.py --no-user-cfg install --prefix=${PREFIX}
-	[ "$(SYSTEM)" != "FreeBSD" ] &&  $(MAKE) -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)" && true
+	[ "$(SYSTEM)" != "FreeBSD" ] &&  $(MAKE) -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)" || true
 install: install_modules 
 	install -m 0755 -d $(PREFIX)/bin
 	for f in bin/*; do echo " $(PREFIX)/$$f";install -m 755 $$f $(PREFIX)/bin/;done;
