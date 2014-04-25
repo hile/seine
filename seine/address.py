@@ -604,13 +604,13 @@ class IPv4AddressRange(object):
         else:
             # Support nmap format like 1.2.3.1-254 for 1.2.3.1 to 1.2.3.254
             try:
-                (start_ip,subnet_last) = first.split('-',1)
+                (start_ip,subnet_last) = first.split('-', 1)
                 self.first = IPv4Address(start_ip)
                 last = '%s.%s' % (
-                    '.'.join(self.first.ipaddress.split('.')[:-1]),
+                    '.'.join(self.first.ipaddress.split('.')[:-len(subnet_last.split('.'))]),
                     subnet_last
                 )
-                self.last = IPv4Address(last)
+                self.last = IPv4Address(last.lstrip('.'))
             except ValueError,e:
                 raise ValueError('Error parsing %s: %s' % (first,e))
 
