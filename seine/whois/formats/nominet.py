@@ -1,11 +1,10 @@
-#!/usr/bin/env python
 """
-Parser for gTLD first level whois data formats
+Parser for nominet whois data formats
 """
 
-import re,time
-
-from seine.whois import WhoisError
+import re
+from datetime import datetime, date
+from seine.whois.formats import WhoisDataParser, WhoisError
 
 SECTION_HEADERS = {
     'Domain name':          'domainname',
@@ -19,71 +18,83 @@ SECTION_HEADERS = {
     'Name servers':         'nameservers',
 }
 
+DATE_FIELD_MAP = {
+    'Registered on:':   'created',
+    'Renewal date:':    'expires',
+    'Last updated:':    'modified',
+}
+DATE_PARSER = lambda value: datetime.strptime(value, '%d-%b-%Y').date()
+# Registrations before good bookkeeping
+OLD_DATE_BANNER = 'before Aug-1996'
+OLD_DATE_VALUE = date(1996,8,01)
+
 RE_NS_LIST = re.compile('(?P<ns>.*) (?P<addresses>.*)$')
-TIME_FORMAT = lambda x: time.mktime(time.strptime(x,'%d-%b-%Y'))
+END_HEADER_PREFIX = 'WHOIS lookup made at'
 
-def parse(domain,data):
-    details = {}
+class nominet(WhoisDataParser):
+    tlds = ( 'uk', )
 
-    def next_section(name,section,value):
-        if section is not None and value is not None:
-            details[section] = value
-        return (name,None)
+    def parse(self, domain, data):
+        """Parse data
 
-    def push_value(value,new_value):
-        if value is None:
-            value = new_value 
-        else:
-            if type(value) != list:
-                value = [value]
-            value.append(new_value)
-        return value
+        Parse Nominet whois data
 
-    section = None
-    value = None
-    for l in [l.strip() for l in data]:
-        if l.startswith('% ') or l == '':
-            continue
-        l = l.decode('utf-8')
+        """
 
-        if l[:20] == 'WHOIS lookup made at':
-            break
+        def next_section(name, section, value):
+            if section is not None and value is not None:
+                self.set(section, value)
+            return (name, None)
 
-        if l[-1]==':' and l[:-1] in SECTION_HEADERS.keys():
-            (section,value) = next_section(SECTION_HEADERS[l[:-1]],section,value)
-            continue
-
-        if section == 'dates':
-            try:
-                timestamp = TIME_FORMAT(l[14:].strip())
-            except ValueError:
-                continue
-            if l[:14] == 'Registered on:':
-                field = 'created'
-            if l[:13] == 'Renewal date:':
-                field = 'expires'
-            if l[:13] == 'Last updated:':
-                field = 'modified'
-            details[field] = timestamp
-
-        elif section == 'nameservers':
-            m = RE_NS_LIST.match(l)
-            if m:
-                ns = m.groupdict()['ns']
-                details['glue_%s' % ns] = map(lambda x:
-                    x.strip(),
-                    m.groupdict()['addresses'].split(',')
-                )
+        def push_value(value, new_value):
+            if value is None:
+                value = new_value
             else:
-                ns = l
-            value = push_value(value,ns)
+                if type(value) != list:
+                    value = [value]
+                value.append(new_value)
+            return value
 
-        else:
-            value = push_value(value,l)
-            
+        data = WhoisDataParser.parse(self, domain, data)
 
-    if section is not None and value is not None:
-        details[section] = value
+        section = None
+        value = None
+        for l in [l.strip() for l in data]:
+            if l.startswith('% ') or l == '':
+                continue
+            l = l.decode('utf-8')
 
-    return details
+            if l[:len(END_HEADER_PREFIX)] == END_HEADER_PREFIX:
+                break
+
+            if l[-1]==':' and l[:-1] in SECTION_HEADERS.keys():
+                (section, value) = next_section(SECTION_HEADERS[l[:-1]], section, value)
+                continue
+
+            if section == 'dates':
+                for key, field in DATE_FIELD_MAP.items():
+                    if l[:len(key)] == key:
+                        datevalue = l[len(key):].strip()
+                        if datevalue != OLD_DATE_BANNER:
+                            datevalue =  DATE_PARSER(datevalue)
+                        else:
+                            datevalue = OLD_DATE_VALUE
+                        self.set(field, datevalue)
+                        break
+
+            elif section == 'nameservers':
+                m = RE_NS_LIST.match(l)
+                if m:
+                    ns = m.groupdict()['ns'].strip()
+                    glue = [x.strip() for x in m.groupdict()['addresses'].split(',')]
+                    self.set('glue_%s' % ns, glue)
+                else:
+                    ns = l.strip()
+                value = push_value(value, ns)
+
+            else:
+                value = push_value(value, l)
+
+        if section is not None and value is not None:
+            self.set(section, value)
 

@@ -10,8 +10,8 @@ from seine.url import HTTPRequest, HTTPRequestError
 IANA_TLD_URL = 'http://data.iana.org/TLD/tlds-alpha-by-domain.txt'
 
 CACHE_DIRECTORIES = [
-    '/var/cache/dns',
-    os.path.join(os.getenv('HOME'), '.tldcache')
+    '/var/cache/tld',
+    '/tmp/tld-%s' % os.geteuid(),
 ]
 
 CACHE_FILES = map(lambda d:
@@ -73,12 +73,15 @@ class TLDCache(list):
 
     def __getitem__(self, item):
         if len(self) == 0:
-            raise DNSCacheError('TLD data file %s not yet downloaded.' % self.path)
-
+            self.update()
         try:
             return list.__getitem__(self, self.index(item))
         except ValueError:
             raise KeyError('No such TLDCache item: %s' % item)
+
+    @property
+    def is_downloaded(self):
+        return len(self) > 0
 
     def load(self):
         """Load saved file
@@ -108,6 +111,14 @@ class TLDCache(list):
             raise TLDCacheError('Error loading cache: %s' % emsg)
 
     def update(self):
+        """Update cache
+
+        Compatibility callback for self.download()
+
+        """
+        return self.download()
+
+    def download(self):
         """Update TLD cache file
 
         Download a new TLD cache file from IANA and load new version
@@ -122,6 +133,7 @@ class TLDCache(list):
                 os.mkdir(cache_dir)
             except OSError, (ecode, emsg):
                 raise DNSCacheError('Error creating %s: %s' % (cache_dir, emsg))
+
         try:
             req = HTTPRequest()
             (code, data, headers) = req.GET(IANA_TLD_URL)
@@ -129,8 +141,8 @@ class TLDCache(list):
             fd.write(data)
             fd.close()
 
-        except IOError, e:
-            raise DNSCacheError('Error updating %s: %s' % (self.path, e))
+        except IOError, emsg:
+            raise DNSCacheError('Error updating %s: %s' % (self.path, emsg))
 
         except OSError, (ecode, emsg):
             raise DNSCacheError('Error updating %s: %s' % (self.path, emsg))

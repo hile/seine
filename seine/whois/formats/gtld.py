@@ -3,9 +3,9 @@
 Parser for gTLD first level whois data formats
 """
 
-import time
+from datetime import datetime
 
-from seine.whois import WhoisError
+from seine.whois.formats import WhoisDataParser, WhoisError
 
 FIELD_MAP = {
     'Domain Name':      'domainname',
@@ -19,33 +19,34 @@ FIELD_MAP = {
     'Expiration Date':  'expires',
 }
 
-DNS_FIELDS = ['nameservers','whois_servers','domainname']
+DNS_FIELDS = ( 'nameservers', 'whois_servers', 'domainname', )
+DATE_FIELDS = ( 'updated', 'created', 'expires', )
+DATE_PARSER = lambda value: datetime.strptime(value, '%d-%b-%Y').date()
 
-DATE_FIELDS = ['updated','created','expires']
-DATE_PARSER = lambda x: time.mktime(time.strptime(x,'%d-%b-%Y'))
+class gtld(WhoisDataParser):
+    tlds = ( 'com', 'edu', 'gov', 'mil', 'net', 'org', 'arpa', )
 
-def parse(domain,data):
-    details = {}
-    for l in data:
-        if not l.startswith(' '):
-            continue
-        try:
-            k,v = [x.strip() for x in l.split(':',1)]
-        except ValueError:
-            raise WhoisError('Error parsing line %s' % l) 
-        try:
-            k = FIELD_MAP[k]
-        except KeyError:
-            raise WhoisError('Unknown field on line %s' % l) 
-        if k in DATE_FIELDS:
-            v = DATE_PARSER(v)
-        elif k in DNS_FIELDS:
-            v = v.lower()
-        if details.has_key(k):
-            if type(details[k]) != list:
-                details[k] = [details[k]]
-            details[k].append(v)
-        else:
-            details[k] = v
-    return details
+    def parse(self, domain, data):
+        data = WhoisDataParser.parse(self, domain, data)
 
+        for l in data:
+            if not l.startswith(' ') or l.strip()=='':
+                continue
+
+            try:
+                k, v = [x.strip() for x in l.split(':', 1)]
+            except ValueError:
+                raise WhoisError('Error parsing line %s' % l)
+
+            try:
+                k = FIELD_MAP[k]
+            except KeyError:
+                raise WhoisError('Unknown field on line %s' % l)
+
+            if k in DATE_FIELDS:
+                v = DATE_PARSER(v)
+
+            elif k in DNS_FIELDS:
+                v = v.lower()
+
+            self.set(k, v)

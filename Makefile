@@ -1,10 +1,11 @@
-# vim: noexpandtab, tabstop=4
+# vim: noexpandtab  tabstop=4
 #
 # Install the scrips, configs and python modules
 #
 
-PACKAGE= $(shell basename ${PWD})
-VERSION= $(shell awk -F\' '/^VERSION/ {print $$2}' setup.py)
+PACKAGE := $(shell basename ${PWD})
+VERSION := $(shell awk -F\' '/^VERSION/ {print $$2}' setup.py)
+SYSTEM := $(shell uname -s)
 
 all: build
 
@@ -12,23 +13,24 @@ clean:
 	@rm -rf build
 	@rm -rf dist
 	@find . -name '*.egg-info'|xargs rm -rf
-	make -C pacparser/src clean
+	[ "$(SYSTEM)" != "FreeBSD" ] && $(MAKE) -C pacparser/src clean || true
 
 build:
 	python setup.py build
-	make -C pacparser/src pymod
+	git submodule update pacparser
+	[ "$(SYSTEM)" != "FreeBSD" ] && $(MAKE) -C pacparser/src pymod || true
 
 ifdef PREFIX
 install_modules: build
 	python setup.py --no-user-cfg install --prefix=${PREFIX}
-	make -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)"
+	[ "$(SYSTEM)" != "FreeBSD" ] &&  $(MAKE) -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)" || true
 install: install_modules 
 	install -m 0755 -d $(PREFIX)/bin
 	for f in bin/*; do echo " $(PREFIX)/$$f";install -m 755 $$f $(PREFIX)/bin/;done;
 else
 install_modules: build 
 	python setup.py install
-	make -C pacparser/src install-pymod
+	[ "$(SYSTEM)" != "FreeBSD" ] && $(MAKE) -C pacparser/src install-pymod || true
 install: install_modules 
 endif
 
