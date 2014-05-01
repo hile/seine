@@ -1,4 +1,4 @@
-# vim: noexpandtab  tabstop=4
+# vim: noexpandtab tabstop=4
 #
 # Install the scrips, configs and python modules
 #
@@ -24,14 +24,14 @@ ifdef PREFIX
 install_modules: build
 	python setup.py --no-user-cfg install --prefix=${PREFIX}
 	[ "$(SYSTEM)" != "FreeBSD" ] &&  $(MAKE) -C pacparser/src install-pymod EXTRA_ARGS="--prefix=$(PREFIX)" || true
-install: install_modules 
+install: install_modules
 	install -m 0755 -d $(PREFIX)/bin
 	for f in bin/*; do echo " $(PREFIX)/$$f";install -m 755 $$f $(PREFIX)/bin/;done;
 else
-install_modules: build 
+install_modules: build
 	python setup.py install
 	[ "$(SYSTEM)" != "FreeBSD" ] && $(MAKE) -C pacparser/src install-pymod || true
-install: install_modules 
+install: install_modules
 endif
 
 package: clean
@@ -39,7 +39,7 @@ package: clean
 	git log --pretty=format:'%ai %an%n%n%B' > CHANGELOG.txt
 	rsync -a . --exclude='*.swp' --exclude=.git --exclude=.gitignore ./ $(PACKAGE)-$(VERSION)/
 	rm CHANGELOG.txt
-	tar -zcf ../packages/$(PACKAGE)/$(PACKAGE)-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc $(PACKAGE)-$(VERSION) 
+	tar -zcf ../packages/$(PACKAGE)/$(PACKAGE)-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc $(PACKAGE)-$(VERSION)
 	rm -rf $(PACKAGE)-$(VERSION)
 
 register:
