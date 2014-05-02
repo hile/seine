@@ -14,6 +14,7 @@ import select
 
 from systematic.shell import Script, ScriptThread, ScriptError
 from systematic.log import Logger, LoggerError
+from seine.address import IPv4Address
 from seine.snmp import SNMPError
 
 # Valid SNMP data types
@@ -268,18 +269,23 @@ class Tree(OIDPrefix):
         return entry
 
     def clear(self):
-        """Clear counter items
+        """Clear items
 
-        Clear counter items from tree, preserve subtrees
+        Clear items from tree, preserve subtrees
 
         """
-        for oid, item in self.item_index.items():
+        for oid in sorted(self.item_index.keys()):
+            item = self.item_index[oid]
             if isinstance(item, Item):
                 del self.item_index[oid]
+            elif isinstance(item, Tree):
+                item.clear()
 
-        for item in self.items:
+        for item in [x for x in self.items]:
             if isinstance(item, Item):
                 self.items.remove(item)
+            elif isinstance(item, Tree):
+                item.clear()
 
     def relative_oid(self, oid):
         if oid == self.oid:
@@ -528,6 +534,9 @@ class Tree(OIDPrefix):
         if isinstance(entry, Tree):
             return entry.NEXT(oid)
 
+        if isinstance(entry.next, Tree):
+            return entry.next.NEXT(oid)
+
         return entry.next
 
     def SET(self, oid, value):
@@ -651,6 +660,9 @@ class SNMPAgent(Script):
 
         """
         return self.tree.SET(oid, value)
+
+    def clear(self):
+        return self.tree.clear()
 
     def reload(self):
         """
