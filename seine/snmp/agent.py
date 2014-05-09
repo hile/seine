@@ -466,7 +466,7 @@ class Tree(OIDPrefix):
             formatted = self.__format_oid__(oid)
             oidstring = self.__format_oid_string__(oid)
         except ValueError:
-            return self.__invalid__('GET invalid OID %' % oid)
+            return self.__invalid__('GET invalid OID %s' % oid)
 
         if formatted == self.oid:
             return self.__invalid__('GET for OID tree root %s' % oidstring)
@@ -601,10 +601,12 @@ class SNMPAgent(Script):
 
         agent.run()
     """
-    def __init__(self, oid):
+    def __init__(self, oid, reload_interval=60):
         Script.__init__(self)
         self.log = Logger('snmp').default_stream
-        self.last_reload_ts = None
+
+        self.reload_interval = reload_interval
+        self.last_reload = None
 
         self.add_argument('-g', '--get', help='SNMP GET request')
         self.add_argument('-n', '--next', help='SNMP GET request')
@@ -668,13 +670,6 @@ class SNMPAgent(Script):
         """
         This method must be implemented in a child class. It is used to
         reload the SNMP tree data from files, if possible.
-
-        The method is called for every GET and NEXT: you must implement some
-        kind of check if the reload is actually needed or not (like, check
-        source file mtime and only reload if file is modified).
-
-        For NEXT you should check if self.last_reload_ts is too recent, see example
-        in SNMPAgentTest reload class
         """
         raise NotImplementedError('You must implement reload in child class')
 
@@ -710,7 +705,19 @@ class SNMPAgent(Script):
 
         EOF = ''
         self.log.debug('Starting SNMP agent for OID %s' % self.tree.oid)
+
         while True:
+            ready = select.select([sys.stdin], [], [], 0.2)[0]
+            if not ready:
+                if self.last_reload is not None:
+                    since_reload = time.time() - self.last_reload
+                    if since_reload > self.reload_interval:
+                        self.reload()
+                        self.last_reload = time.time()
+                else:
+                    self.last_reload = time.time()
+                continue
+
             try:
                 cmd = sys.stdin.readline()
                 if cmd == EOF:
@@ -772,31 +779,3 @@ class SNMPAgent(Script):
                 # Interactive mode, user interrupted
                 self.log.debug('Quitting...')
                 return
-
-if __name__ == '__main__':
-    import logging
-    import string
-    Logger().level = logging.DEBUG
-
-    agent = SNMPAgent('.1.2.3.4')
-    tree = agent.register_tree('1.2.3.4.1')
-    tree.register('1.2.3.4.1.1', 'integer', 1)
-    tree.register('1.2.3.4.1.2', 'integer', 2)
-
-    agent.register_tree('1.2.3.4.2')
-    agent.register('1.2.3.4.2.1', 'integer', 1)
-    agent.register('1.2.3.4.2.4', 'integer', 4)
-    agent.register('1.2.3.4.2.3', 'integer', 3)
-    agent.register('1.2.3.4.2.2', 'integer', 2)
-
-    tree = agent.register_tree('1.2.3.4.3')
-    tree.register('1.2.3.4.3.1.1', 'integer', 1)
-    tree.add_values('string', [x for x in string.digits[2:]])
-
-    tree = agent.register_tree('1.2.3.4.4')
-    tree.add_prefix_map([
-        { 'oid': '1.2.3.4.4.1', 'key': 'string', 'values': [x for x in string.letters[:10]]},
-        { 'oid': '1.2.3.4.4.2', 'key': 'integer', 'values': [x for x in string.digits[:10]]},
-    ])
-
-    agent.run()

@@ -40,7 +40,7 @@ class ARINNetBlock(object):
         elif reverse.address_format == IPv6Address:
             self.start = IPv6Address(data['startAddress']['$'])
             self.end = IPv6Address(data['endAddress']['$'])
-            self.network = IPvAddress('%s/%s' % (self.start.address, self.mask))
+            self.network = IPv6Address('%s/%s' % (self.start.address, self.mask))
 
     def __repr__(self):
         return '%s' % self.network
