@@ -1110,3 +1110,16 @@ class SubnetPrefixIterator(object):
 
         return entry
 
+def parse_address(value):
+    """Parse address
+
+    Parse address to IPv4Address, IPv6Address or EthernetMACAddress
+
+    """
+    for fmt in (IPv4Address, IPv6Address, EthernetMACAddress):
+        try:
+            return fmt(value)
+        except ValueError:
+            pass
+
+    raise ValueError('Unknown address format: %s' % value)
