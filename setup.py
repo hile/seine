@@ -21,7 +21,7 @@ setup(
     description = 'Various network address and url related utilities',
     long_description = README,
     install_requires = [
-        'systematic',
+        'systematic>=4.0.5',
         'requests',
         'dnspython',
         'pyip',
