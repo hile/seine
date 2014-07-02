@@ -5,12 +5,14 @@ Classes to represent Ethernet, IPv4, IPv6 addresses and address ranges
 import struct
 import string
 
+from systematic.classes import SortableContainer
+
 # Maximum value available with 32 bits
 UINT_MAX = 2**32-1
 U128_MAX = 2**128-1
 
 ADDRESS_CLASS_DEFAULT = 'normal'
-ADDRESS_CLASS_MAP = {
+IPV4_ADDRESS_CLASS_MAP = {
     'loopback':     ['127.0.0.0/8'],
     'link-local':   ['169.254.0.0/16'],
     'multicast':    ['224.0.0.0/4'],
@@ -18,6 +20,24 @@ ADDRESS_CLASS_MAP = {
     'rfc1918':      ['10.0.0.0/8',' 172.16.0.0/12','192.168.0.0/16'],
     'special':      ['0.0.0.0/32','255.255.255.255/32'],
 }
+IPV6_ADDRESS_CLASS_MAP = {
+    'loopback':                 ['::1/128'],
+    'discard_rfc6666':          ['100::/64'],
+    'local_ipv4_translation':   ['::ffff:0:0/96'],
+    'global_ipv4_translation':  ['64:ff9b::/96'],
+    'teredo':                   ['2001::/32'],
+    'orchid':                   ['2001:10::/28'],
+    'documentation':            ['2001:db8::/32'],
+    '6to4':                     ['2002::/16'],
+    'unique_local':             ['fc00::/7'],
+    'link_local':               ['fe80::/10'],
+    'multicast':                ['ff00::/8'],
+}
+
+IPV6_IPV4_TRANSLATION_PREFIXES = (
+    '::ffff',
+    '64:ff9b',
+)
 
 try:
     type(bin)
@@ -37,6 +57,7 @@ except NameError:
             s = '0'*(32-len(s)) + s
         return s
 
+
 def isEthernetMACAddress(value):
     try:
         EthernetMACAddress(value)
@@ -44,33 +65,22 @@ def isEthernetMACAddress(value):
         return False
     return True
 
-class EthernetMACAddress(object):
-    def __init__(self, address):
-        try:
-            if len(address) == 12:
-                parts = map(lambda x:
-                    int(x, 16),
-                    [address[i:i+2] for i in range(0, len(address), 2)]
-                )
 
-            elif len(address) == 6:
-                parts = struct.unpack('BBBBBB', str(address))
+class MediaAddressType(SortableContainer):
+    """MAC address types base class
 
-            else:
-                parts = map(lambda x:
-                    int(x, 16),
-                    address.split(':', 5)
-                )
+    Common base class for MAC address types, like Ethernet, Firewire etc.
 
-            for p in parts:
-                if p < 0 or p > 255:
-                    raise ValueError
+    """
+    def __init__(self, addresstype, address):
+        self.type = addresstype
+        self.__parseaddress__(address)
 
-        except ValueError:
-            raise ValueError('Not a Ethernet MAC address: %s' % address)
+    def __parseaddress__(self, value):
+        raise NotImplementedError('__parseaddress__ must be implemented in child class')
 
-        self.address = ':'.join(['%02x'%p for p in parts])
-        self.value = sum([parts[-(len(parts)-i)]<<8*(len(parts)-i-1) for i in range(len(parts))])
+    def __repr__(self):
+        return self.address
 
     def __hash__(self):
         return self.value
@@ -81,42 +91,87 @@ class EthernetMACAddress(object):
     def __long__(self):
         return self.value
 
-    def __repr__(self):
-        return self.address
-
     def __cmp__(self, other):
-        if isinstance(other, EthernetMACAddress):
+        if self.__class__ == other.__class__:
             return cmp(self.value, other.value)
+
+        elif isinstance(other, MediaAddressType):
+            raise ValueError('Error comparing %s to %s' % (
+                    self.__class__.__name__,
+                    other.__class__.__name__,
+                ))
+
         else:
             try:
-                other = long(other)
-                return cmp(self.value, other)
+                other = self.__class__(other)
+                return cmp(self.value, other.value)
+
             except ValueError:
-                try:
-                    other = EthernetMACAddress(other)
-                    return cmp(self.value, other.value)
-                except ValueError:
-                    __parseaddress__
+                raise ValueError('Compared value is not valid %s value: %s' % (
+                    self.__class__.__name__,
+                    other
+                ))
 
-        raise ValueError('Error comparing EthernetMACAddress to %s' % type(other))
 
-    def __eq__(self, other):
-        return self.__cmp__(other) == 0
+class EthernetMACAddress(MediaAddressType):
+    def __init__(self, address):
+        MediaAddressType.__init__(self, 'ethernet', address)
 
-    def __ne__(self, other):
-        return self.__cmp__(other) != 0
+    def __parseaddress__(self, value):
+        try:
+            if len(value) == 12:
+                parts = [int(x, 16) for x in
+                    [value[i:i+2] for i in range(0, len(value), 2)]
+                ]
 
-    def __lt__(self, other):
-        return self.__cmp__(other) < 0
+            elif len(value) == 6:
+                parts = struct.unpack('BBBBBB', str(value))
 
-    def __le__(self, other):
-        return self.__cmp__(other) <= 0
+            else:
+                parts = [int(x, 16) for x in value.split(':', 5)]
 
-    def __gt__(self, other):
-        return self.__cmp__(other) > 0
+            if len(parts) != 6:
+                raise ValueError
 
-    def __ge__(self, other):
-        return self.__cmp__(other) >= 0
+            for p in parts:
+                if p < 0 or p > 255:
+                    raise ValueError
+
+        except ValueError:
+            raise ValueError('Not a Ethernet MAC address: %s' % value)
+
+        self.address = ':'.join(['%02x'%p for p in parts])
+        self.value = sum([parts[-(len(parts)-i)]<<8*(len(parts)-i-1) for i in range(len(parts))])
+
+class FirewireLocalLinkAddress(MediaAddressType):
+    def __init__(self, address):
+        MediaAddressType.__init__(self, 'firewire', address)
+
+    def __parseaddress__(self, value):
+        try:
+            if len(value) == 16:
+                parts = [int(x, 16) for x in
+                    [value[i:i+2] for i in range(0, len(value), 2)]
+                ]
+
+            elif len(value) == 8:
+                parts = struct.unpack('BBBBBBBB', str(value))
+
+            else:
+                parts = [int(x, 16) for x in value.split(':', 7)]
+
+            if len(parts) != 8:
+                raise ValueError
+
+            for p in parts:
+                if p < 0 or p > 255:
+                    raise ValueError
+
+        except ValueError:
+            raise ValueError('Not a Firewire local link address: %s' % value)
+
+        self.address = ':'.join(['%02x'%p for p in parts])
+        self.value = sum([parts[-(len(parts)-i)]<<8*(len(parts)-i-1) for i in range(len(parts))])
 
 
 class IPv4Address(object):
@@ -146,7 +201,7 @@ class IPv4Address(object):
         Parameters:
         address: dot format address as in inet, or long integer
         netmask: netmask in dot format or long integer
-        oldformat: parse 127 as 127.0.0.0 not 0.0.0.127
+        oldformat: parse 127 as 127.0.0.0 not 0.0.0.127 (as in netstat output)
         """
         self.oldformat = oldformat
         if type(address) != int and len(address) == 4 and not address.translate(None, string.digits+'abcdef'):
@@ -383,7 +438,7 @@ class IPv4Address(object):
         return '.'.join(parts)
 
     def __addressclass__(self):
-        for aclass, networks in ADDRESS_CLASS_MAP.items():
+        for aclass, networks in IPV4_ADDRESS_CLASS_MAP.items():
             for net in networks:
                 if IPv4Address(net).addressInNetwork(self.ipaddress):
                     return aclass
@@ -407,7 +462,7 @@ class IPv4Address(object):
 
     @property
     def bitstring(self):
-        return '0x%x' % self.raw_value
+        return '0x%s' % ''.join(self.hexbytes)
 
     @property
     def hexbytes(self):
@@ -742,21 +797,37 @@ class IPv6Address(dict):
             if len(subs) == 1:
                 raise ValueError
 
-            if subs.count('') > 0:
+            if subs[-1].count('.') == 3:
+                # IPv6/IPv4 mapped address
+                ipv4_mapping = IPv4Address(subs[-1])
+                subs = subs[:-1] + [
+                    ipv4_mapping.bitstring[2:6],
+                    ipv4_mapping.bitstring[6:10],
+                ]
+            else:
+                ipv4_mapping = None
+
+            if subs.count('') == len(subs):
+                # Address format like ::/96
+                bitstring = '0' * (int(bitmask) / 4)
+
+            elif subs.count('') > 0:
+                # Address with shortcuts like (fe80::1/64)
+
                 pad = subs.index('')
                 if subs[pad+1] == '':
                     subs.pop(pad+1)
 
                 if subs[0] != '':
-                    start = ''.join(['%04x' % int(s,16) for s in subs[:subs.index('')]])
-                    end = ''.join(['%04x' % int(s,16) for s in subs[subs.index('')+1:]])
-                    bitstring = '%s%s%s' % (start,'0'*(32-len(start)-len(end)),end)
+                    start = ''.join(['%04x' % int(s, 16) for s in subs[:subs.index('')]])
+                    end = ''.join(['%04x' % int(s, 16) for s in subs[subs.index('')+1:]])
+                    bitstring = '%s%s%s' % (start, '0' * (32-len(start) - len(end)), end)
                 else:
-                    end = ''.join(['%04x' % int(s,16) for s in subs[1:]])
-                    bitstring = '%s%s' % ('0'*(32-len(end)),end)
+                    end = ''.join(['%04x' % int(s, 16) for s in subs[1:]])
+                    bitstring = '%s%s' % ('0' * (32-len(end)), end)
 
             else:
-                bitstring = ''.join(['%04x' % int(s,16) for s in subs])[2:]
+                bitstring = ''.join(['%04x' % int(s, 16) for s in subs])[2:]
 
             hex_bitstring = '0x%s' % bitstring
 
@@ -787,6 +858,15 @@ class IPv6Address(dict):
         else:
             self['type'] = 'subnet'
 
+        if ipv4_mapping is not None:
+            valid_translation_prefix = False
+            for prefix in IPV6_IPV4_TRANSLATION_PREFIXES:
+                if address[:len(prefix)] == prefix:
+                    valid_translation_prefix = True
+                    break
+            if not valid_translation_prefix:
+                raise ValueError('IPv6/IPv4 translation not supported for address %s' % address)
+
         self.update({
             'address':  address,
             'bitstring': hex_bitstring,
@@ -801,6 +881,15 @@ class IPv6Address(dict):
     @property
     def address(self):
         return self['address'].lower()
+
+    @property
+    def addressclass(self):
+        for aclass, networks in IPV6_ADDRESS_CLASS_MAP.items():
+            for net in networks:
+                if IPv6Address(net).addressInNetwork(self.address):
+                    return aclass
+
+        return ADDRESS_CLASS_DEFAULT
 
     @property
     def bitstring(self):
