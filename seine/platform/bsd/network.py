@@ -270,6 +270,10 @@ class BSDNetworkInterface(NetworkInterface):
         elif self.name[:6] == 'bridge':
             self.parse_bridge_configuration(fields)
 
+        elif fields[0] == 'vlan:':
+            self.vlan_id = fields[1]
+            self.vlan_device = fields[4]
+
 
 class BSDNetworkInterfaces(NetworkInterfaceList):
     def update(self):
