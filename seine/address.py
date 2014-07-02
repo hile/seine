@@ -21,6 +21,7 @@ IPV4_ADDRESS_CLASS_MAP = {
     'special':      ['0.0.0.0/32','255.255.255.255/32'],
 }
 IPV6_ADDRESS_CLASS_MAP = {
+    'undefined':                ['::/128'],
     'loopback':                 ['::1/128'],
     'discard_rfc6666':          ['100::/64'],
     'local_ipv4_translation':   ['::ffff:0:0/96'],
@@ -809,7 +810,10 @@ class IPv6Address(dict):
 
             if subs.count('') == len(subs):
                 # Address format like ::/96
-                bitstring = '0' * (int(bitmask) / 4)
+                if int(bitmask) == 0:
+                    bitstring = '0'
+                else:
+                    bitstring = '0' * (int(bitmask) / 4)
 
             elif subs.count('') > 0:
                 # Address with shortcuts like (fe80::1/64)
