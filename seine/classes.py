@@ -45,6 +45,7 @@ class NetworkInterface(SortableContainer):
         self.configuration = {}
         self.vlan_id = None
         self.vlan_device = None
+        self.vlan_options = {}
 
     def __repr__(self):
         return self.name

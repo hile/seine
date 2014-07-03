@@ -91,6 +91,35 @@ class LinuxNetworkAddress(NetworkAddress):
 class LinuxNetworkInterface(NetworkInterface):
     def __init__(self, name):
         NetworkInterface.__init__(self, name)
+        self.__latest_parsed_address = None
+
+        if self.name.count('@') == 1:
+            self.parse_vlan_options()
+
+    def parse_vlan_options(self):
+        self.name, self.vlan_device = self.name.split('@', 1)
+        try:
+            output = check_output(['/sbin/ip', '-d', 'link', 'show', self.name])
+        except CalledProcessError, emsg:
+            raise NetworkError('Error getting interfaces: %s' % emsg)
+
+        for l in [l for l in output.split('\n')[1:] if l.strip() != '']:
+            fields = l.split()
+            if fields[0] != 'vlan':
+                continue
+
+            while fields:
+                if fields[0] == 'id':
+                    self.vlan_id = fields[1]
+                    fields = fields[2:]
+                if fields[0] in ( 'protocol', ):
+                    self.vlan_options[fields[0]] = fields[1]
+                    fields = fields[2:]
+                elif fields[0].startswith('<'):
+                    self.vlan_options['flags'] = fields[0].strip('<>').split(',')
+                    fields = fields[1:]
+                else:
+                    fields = fields[1:]
 
     def parse_options(self, fields):
         fields = fields.split()
@@ -119,10 +148,14 @@ class LinuxNetworkInterface(NetworkInterface):
             return
 
         if fields[0] == 'inet':
-            self.ipv4_addresses.append(LinuxNetworkAddress('inet', fields[1], fields[2:]))
+            address = LinuxNetworkAddress('inet', fields[1], fields[2:])
+            self.ipv4_addresses.append(address)
+            self.__latest_parsed_address = address
 
         elif fields[0] == 'inet6':
-            self.ipv6_addresses.append(LinuxNetworkAddress('inet6', fields[1], fields[2:]))
+            address = LinuxNetworkAddress('inet6', fields[1], fields[2:])
+            self.ipv6_addresses.append(address)
+            self.__latest_parsed_address = address
 
         elif fields[0] == 'link/ether':
             self.media = EthernetMACAddress(fields[1])
@@ -131,7 +164,7 @@ class LinuxNetworkInterface(NetworkInterface):
             self.media = EthernetMACAddress(fields[1])
 
         elif fields[0] == 'valid_lft':
-            address = self.ipv6_addresses[-1]
+            address = self.__latest_parsed_address
             address.flags['valid_lft'] = fields[1]
             address.flags['preferred_lft'] = fields[3]
 
