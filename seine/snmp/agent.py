@@ -253,11 +253,13 @@ class Tree(OIDPrefix):
 
         """
         entry.parent = self
-        entry.next = next
 
         if index > 0:
             previous = self.items[index - 1]
-            self.items[index - 1].next = entry
+            previous.next = entry
+        else:
+            previous = None
+        entry.next = next
 
         self.items.append(entry)
         self.item_index[entry.oid_string] = entry
@@ -529,7 +531,10 @@ class Tree(OIDPrefix):
         try:
             entry = self.item_index[index]
         except KeyError:
-            return self.__invalid__('NEXT unknown OID %s' % oid)
+            if self.items:
+                return self.items[0]
+            else:
+                return self.__invalid__('NEXT unknown OID %s' % oid)
 
         if isinstance(entry, Tree):
             return entry.NEXT(oid)
@@ -537,7 +542,12 @@ class Tree(OIDPrefix):
         if isinstance(entry.next, Tree):
             return entry.next.NEXT(oid)
 
-        return entry.next
+        if entry.next:
+            return entry.next
+        elif self.next:
+            return self.next.NEXT(oid)
+        else:
+            self.__invalid__('NEXT unknown OID %s' % oid)
 
     def SET(self, oid, value):
         """Set OID value
