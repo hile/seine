@@ -23,6 +23,7 @@ setup(
     install_requires = [
         'systematic>=4.0.5',
         'requests',
+        'python-dateutil',
         'dnspython',
         'pyip',
         'pyasn1',
