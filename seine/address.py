@@ -709,7 +709,11 @@ class IPv4AddressRange(object):
         """
         self.__next = 0
 
-        if last is not None:
+        if isinstance(first, IPv4Address) and isinstance(last, IPv4Address):
+            self.first = first
+            self.last = last
+
+        elif last is not None:
             self.first = IPv4Address(first)
             self.last = IPv4Address(last)
 
@@ -736,7 +740,7 @@ class IPv4AddressRange(object):
             except ValueError,e:
                 raise ValueError('Error parsing %s: %s' % (first,e))
 
-        if self.last.address < self.first.address:
+        if self.last < self.first:
             raise ValueError('Invalid range: last address is smaller than first address')
 
     def __repr__(self):
