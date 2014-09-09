@@ -4,7 +4,7 @@ import os
 import glob
 from setuptools import setup, find_packages
 
-VERSION='2.4.2'
+VERSION='2.4.3'
 README = open(os.path.join(os.path.dirname(__file__), 'README.txt'), 'r').read()
 
 setup(
@@ -24,6 +24,7 @@ setup(
         'systematic>=4.0.5',
         'requests',
         'python-dateutil',
+        'pyopenssl',
         'dnspython',
         'pyip',
         'pyasn1',
