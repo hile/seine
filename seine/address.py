@@ -630,17 +630,18 @@ class IPv4Address(object):
         if bitmask <= self.bitmask:
             raise ValueError('Split mask must be larger than network mask %s' % self.bitmask)
 
-        networks = [IPv4Address('%s/%s' % (self.ipaddress, bitmask))]
         last = self.last
+
+        networks = [IPv4Address('%s/%s' % (self.ipaddress, bitmask))]
         next = IPv4Address('%s/%s' % (self.raw_value+2**(32-bitmask), bitmask))
         while True:
             if maxcount is not None and maxcount < len(networks):
                 break
             networks.append(next)
 
-            if next.last.address >= last.address:
+            if next.last.raw_value >= last.raw_value:
                 break
-            next = IPv4Address('%s/%s' % (next.address+2**(32-bitmask), bitmask))
+            next = IPv4Address('%s/%s' % (next.raw_value + 2**(32-bitmask), bitmask))
 
         return networks
 
