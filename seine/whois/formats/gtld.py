@@ -17,6 +17,7 @@ FIELD_MAP = {
     'Updated Date':     'updated',
     'Creation Date':    'created',
     'Expiration Date':  'expires',
+    'Sponsoring Registrar IANA ID': 'sponsor',
 }
 
 DNS_FIELDS = ( 'nameservers', 'whois_servers', 'domainname', )
