@@ -4,7 +4,7 @@ import os
 import glob
 from setuptools import setup, find_packages
 
-VERSION='2.4.5'
+VERSION='2.4.6'
 
 setup(
     name = 'seine',
@@ -19,7 +19,7 @@ setup(
     author_email = 'hile@iki.fi',
     description = 'Various network address and url related utilities',
     install_requires = [
-        'systematic>=4.0.5',
+        'systematic>=4.2.3',
         'requests',
         'python-dateutil',
         'dnspython',
