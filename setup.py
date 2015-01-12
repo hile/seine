@@ -22,7 +22,6 @@ setup(
         'systematic>=4.0.5',
         'requests',
         'python-dateutil',
-        'pyopenssl',
         'dnspython',
         'pyip',
         'pyasn1',
