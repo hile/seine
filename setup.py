@@ -4,7 +4,7 @@ import os
 import glob
 from setuptools import setup, find_packages
 
-VERSION='2.4.7'
+VERSION='2.5.0'
 
 setup(
     name = 'seine',
@@ -15,7 +15,7 @@ setup(
     author = 'Ilkka Tuohela',
     author_email = 'hile@iki.fi',
     description = 'Various network address and url related utilities',
-    packages = ['seine'] + ['seine.%s'%s for s in find_packages('seine')],
+    packages = find_packages(),
     install_requires = (
         'systematic>=4.2.3',
         'requests',
