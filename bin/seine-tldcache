@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from systematic.shell import Script
+from systematic.shell import Script, ScriptCommand
 from seine.dns.tld import TLDCache, DNSCacheError
 
 USAGE = """
@@ -10,25 +10,54 @@ You can give multiple names to check on command line.
 Note: besides updating local cache, this is just a simple demonstration of the
 TLD cache code. It should be normally used from other modules."""
 
+
+class TLDCacheCommand(ScriptCommand):
+    def __init__(self, *args, **kwargs):
+        ScriptCommand.__init__(self, *args, **kwargs)
+        self.cache = None
+
+    def parse_args(self, args):
+
+        self.cache = TLDCache(path=args.cache_file)
+        self.cache.load()
+
+        return args
+
+class ListCommand(TLDCacheCommand):
+    def run(self, args):
+        args = self.parse_args(args)
+
+        for name in self.cache:
+            if args.skip_idn and name.is_idn:
+                continue
+            print name
+
+
+class UpdateCommand(TLDCacheCommand):
+    def run(self, args):
+        args = self.parse_args(args)
+        self.cache.update()
+
+class VerifyCommand(TLDCacheCommand):
+    def run(self, args):
+        args = self.parse_args(args)
+
+        for name in [name.strip('.') for name in args.names]:
+            if name in self.cache:
+                print 'Valid TLD: %s' % name
+            else:
+                print 'Invalid TLD: %s' % name
+
+
 script = Script(description=USAGE)
-script.add_argument('-u', '--update', action='store_true', help='Download latest version')
 script.add_argument('-f', '--cache-file', help='TLD cache file')
-script.add_argument('names', nargs='*', help='TLD names to validate')
+
+c = script.add_subcommand(ListCommand('list', 'List all valid TLDs'))
+c.add_argument('--skip-idn', action='store_true', help='Ignore IDN names')
+
+c = script.add_subcommand(UpdateCommand('update', 'Update TLDs cache'))
+
+c = script.add_subcommand(VerifyCommand('verify', 'Verify TLD names'))
+c.add_argument('names', nargs='*', help='TLD names to validate')
+
 args = script.parse_args()
-
-try:
-    cache = TLDCache(path=args.cache_file)
-    cache.load()
-    if args.update:
-        cache.update()
-
-except DNSCacheError, emsg:
-    script.exit(1, emsg)
-
-for name in args.names:
-    name = name.strip('.')
-    if name in cache:
-        print 'Valid TLD: %s' % name
-    else:
-        print 'Invalid TLD: %s' % name
-

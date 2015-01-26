@@ -26,6 +26,34 @@ class DNSCacheError(Exception):
     pass
 
 
+class TLD(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        if self.unicode != self.name:
+            return '%s (%s)' % (self.name, self.unicode)
+        else:
+            return self.name
+
+    def __cmp__(self, other):
+        if isinstance(other, TLD):
+            return cmp(self.unicode, other.unicode)
+
+        if other == self.name or other == self.unicode:
+            return 0
+
+        return cmp(self.unicode, other)
+
+    @property
+    def unicode(self):
+        return unicode(self.name).decode('idna')
+
+    @property
+    def is_idn(self):
+        return self.name != self.unicode
+
+
 class TLDCache(list):
     """
     Abstratction for TLD domain names: you can
@@ -68,6 +96,8 @@ class TLDCache(list):
                     except OSError, (ecode, emsg):
                         continue
 
+        self.sort()
+
     def __repr__(self):
         return 'TLDCache %d entries' % len(self)
 
@@ -102,7 +132,7 @@ class TLDCache(list):
                     continue
                 if not re.match(RE_TLDNAME, l.lower()):
                     continue
-                self.append(l.lower())
+                self.append(TLD(l.lower()))
 
         except IOError, (ecode, emsg):
             raise TLDCacheError('Error loading cache: %s' % emsg)
