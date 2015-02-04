@@ -44,7 +44,7 @@ for network in args.addresses:
         addr = IPv4Address(network)
         if addr.bitmask >= 30:
             script.exit(1,'Enumerating networks with mask > 29 does not make sense.')
-        last = addr.last.next.address + 1
+        last = addr.last.next.raw_value + 1
         a = addr
         while a.address<last:
             if args.reverse_dns:

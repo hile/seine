@@ -1141,10 +1141,7 @@ class IPv4AddressList(dict):
             iprange = [v]
 
         if len(iprange) > 1:
-            addresses.append(IPv4AddressRange(
-                iprange[0].ipaddress,
-                iprange[-1].ipaddress
-            ))
+            addresses.append(IPv4AddressRange(iprange[0].ipaddress, iprange[-1].ipaddress))
 
         elif len(iprange) == 1:
             addresses.append(iprange[0])
@@ -1160,11 +1157,11 @@ class SubnetPrefixIterator(object):
 
         try:
             self.address = IPv4Address(address)
-            self.last = self.address.bitmask<=29 and self.address.last.address or None
+            self.last = self.address.bitmask <= 29 and self.address.last.address or None
         except ValueError,emsg:
             try:
                 self.address = IPv6Address(address)
-                self.last = long(self.address.last.bitstring,16)
+                self.last = long(self.address.last.bitstring, 16)
             except ValueError:
                 raise ValueError('Not valid IPv4 or IPv6 address: %s' % address)
 
@@ -1173,11 +1170,11 @@ class SubnetPrefixIterator(object):
         if self.address.bitmask >= splitmask:
             raise ValueError('Split mask must be smaller than network mask')
 
-        if isinstance(self.address,IPv4Address):
-            self.first = IPv4Address('%s/%s' % (self.address.network,splitmask))
+        if isinstance(self.address, IPv4Address):
+            self.first = IPv4Address('%s/%s' % (self.address.network, splitmask))
         if isinstance(self.address,IPv6Address):
             a = self.address.network.split('/')[0]
-            self.first = IPv6Address('%s/%s' % (a,splitmask))
+            self.first = IPv6Address('%s/%s' % (a, splitmask))
         self.__next = self.first
 
     def __iter__(self):
@@ -1189,7 +1186,7 @@ class SubnetPrefixIterator(object):
                 if self.__next is None:
                     raise StopIteration
                 entry = self.__next
-                if self.address.last.address <= entry.first.address:
+                if self.address.last.raw_value <= entry.first.raw_value:
                     raise StopIteration
                 self.__next = entry.next_network
 
@@ -1197,7 +1194,7 @@ class SubnetPrefixIterator(object):
                 if self.__next is None:
                     raise StopIteration
                 entry = self.__next
-                entry_first = long(entry.first.bitstring,16)
+                entry_first = long(entry.first.bitstring, 16)
                 if self.last <= entry_first:
                     raise StopIteration
                 self.__next = entry.next_network

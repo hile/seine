@@ -3,10 +3,12 @@
 Example script how to use the subnet splitting classes.
 """
 
-import sys,os,logging
+import logging
+import os
+import sys
 
 from systematic.shell import Script,ScriptError
-from seine.address import IPv4Address,IPv6Address,SubnetPrefixIterator
+from seine.address import IPv4Address, IPv6Address, SubnetPrefixIterator
 
 USAGE = """
 Split the given CIDR or IPv6 network to subnets by given bitmask, which must be
