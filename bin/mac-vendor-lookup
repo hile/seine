@@ -3,7 +3,7 @@
 Enumerate and sort ARP address lists from arp -an
 """
 
-from systematic.shell import Script,ScriptError
+from systematic.shell import Script, ScriptError
 from seine.oui import OUIPrefixLookup
 
 script = Script()
