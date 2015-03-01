@@ -4,7 +4,7 @@ import os
 import glob
 from setuptools import setup, find_packages
 
-VERSION='3.0.0'
+VERSION='3.0.1'
 
 setup(
     name = 'seine',
