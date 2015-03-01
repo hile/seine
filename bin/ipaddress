@@ -23,11 +23,13 @@ Network             %(network)s
 Class               %(addressclass)s
 First Host          %(first)s
 Last Host           %(last)s""".lstrip()
+
 IPV4_SHORT_NET_FORMATTING = """
 Address             %(ipaddress)s
 Netmask             %(netmask)s
 Invertmask          %(inverted_netmask)s
 Class               %(addressclass)s""".lstrip()
+
 IPV6_DEFAULT_FORMATTING = """
 Address             %(address)s
 Network             %(network)s
@@ -40,6 +42,7 @@ Revnibbles (ARPA)   %(revnibbles_arpa)s""".lstrip()
 USAGE = """
 Debug tool to show some basic details for given IPv4 or IPv6 address or network.
 You can give multiple addresses on the command line."""
+
 script = Script(description=USAGE)
 script.add_argument('-v','--verbose',action='store_true',help='Output formatter string')
 script.add_argument('addresses',nargs='*',help='Addresses to process')

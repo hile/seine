@@ -23,6 +23,7 @@ class TLDCacheCommand(ScriptCommand):
 
         return args
 
+
 class ListCommand(TLDCacheCommand):
     def run(self, args):
         args = self.parse_args(args)

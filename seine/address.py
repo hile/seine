@@ -12,27 +12,119 @@ UINT_MAX = 2**32-1
 U128_MAX = 2**128-1
 
 ADDRESS_CLASS_DEFAULT = 'normal'
+
 IPV4_ADDRESS_CLASS_MAP = {
-    'loopback':     ['127.0.0.0/8'],
-    'link-local':   ['169.254.0.0/16'],
-    'multicast':    ['224.0.0.0/4'],
-    'reserved':     ['240.0.0.0/4'],
-    'rfc1918':      ['10.0.0.0/8',' 172.16.0.0/12','192.168.0.0/16'],
-    'special':      ['0.0.0.0/32','255.255.255.255/32'],
+    'this_broadcast': {
+        'networks': ['0.0.0.0/8 '],
+        'description': 'Used for broadcast messages to the current ("this") network as specified by RFC 1700, page 4.',
+    },
+    'carriernat':           {
+        'networks': ['100.64.0.0/10'],
+        'description': 'Used for communications between a service provider and its subscribers when using a Carrier-grade NAT, as specified by RFC 6598',
+    },
+
+    'loopback':             {
+        'networks': ['127.0.0.0/8'],
+        'description': 'Used for loopback addresses to the local host, as specified by RFC 990',
+    },
+    'link-local':           {
+        'networks': ['169.254.0.0/16'],
+        'description': 'Used for link-local addresses between two hosts on a single link when no IP address is otherwise specified, such as would have normally been retrieved from a DHCP server, as specified by RFC 3927',
+    },
+    'spar':                 {
+        'networks': ['192.0.0.0/24'],
+        'description': 'Used for the IANA IPv4 Special Purpose Address Registry as specified by RFC 5736',
+    },
+    'testnet':              {
+        'networks': ['192.0.2.0/24'],
+        'description': 'Assigned as "TEST-NET" in RFC 5737 for use solely in documentation and example source code and should not be used publicly',
+    },
+    '6to4anycast':          {
+        'networks': ['192.88.99.0/24'],
+        'description': 'Used by 6to4 anycast relays as specified by RFC 3068',
+    },
+    'test_inter_network':     {
+        'networks': ['198.18.0.0/15'],
+        'description': 'Used for testing of inter-network communications between two separate subnets as specified in RFC 2544',
+    },
+    'testnet_2':            {
+        'networks': ['198.51.100.0/24'],
+        'description': 'Used for testing of inter-network communications between two separate subnets as specified in RFC 2544',
+    },
+    'testnet_3':            {
+        'networks': ['203.0.113.0/24'],
+        'description': 'Assigned as "TEST-NET-3" in RFC 5737 for use solely in documentation and example source code and should not be used publicly.',
+    },
+    'rfc1918':              {
+        'networks': ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
+        'description': 'Used for local communications within a private network as specified by RFC 1918',
+    },
+    'multicast':            {
+        'networks': ['224.0.0.0/4'],
+        'description': 'Reserved for multicast assignments as specified in RFC 5771. 233.252.0.0/24 is assigned as "MCAST-TEST-NET" for use solely in documentation and example source code.',
+    },
+    'reserved':             {
+        'networks': ['240.0.0.0/4'],
+        'description': 'Reserved for future use, as specified by RFC 6890',
+    },
+    'limited_broadcast':    {
+        'networks': ['255.255.255.255/32'],
+        'description': 'Reserved for the "limited broadcast" destination address, as specified by RFC 6890',
+    },
 }
 IPV6_ADDRESS_CLASS_MAP = {
-    'undefined':                ['::/128'],
-    'loopback':                 ['::1/128'],
-    'discard_rfc6666':          ['100::/64'],
-    'local_ipv4_translation':   ['::ffff:0:0/96'],
-    'global_ipv4_translation':  ['64:ff9b::/96'],
-    'teredo':                   ['2001::/32'],
-    'orchid':                   ['2001:10::/28'],
-    'documentation':            ['2001:db8::/32'],
-    '6to4':                     ['2002::/16'],
-    'unique_local':             ['fc00::/7'],
-    'link_local':               ['fe80::/10'],
-    'multicast':                ['ff00::/8'],
+    'undefined':                {
+        'networks': ['::/128'],
+        'description': 'Unspecified address',
+    },
+    'loopback':                 {
+        'networks': ['::1/128'],
+        'description': 'loopback address to the local host',
+    },
+    'local_ipv4_translation':   {
+        'networks': ['::ffff:0:0/96'],
+        'description': 'IPv4 mapped addresses',
+    },
+    'discard_prefix_rfc6666':   {
+        'networks': ['100::/64'],
+        'description': 'Discard Prefix RFC 6666',
+    },
+    'global_ipv4_translation':  {
+        'networks': ['64:ff9b::/96'],
+        'description': 'IPv4/IPv6 translation RFC 6052',
+    },
+    'teredo':                   {
+        'networks': ['2001::/32'],
+        'description': 'Teredo tunneling',
+    },
+    'orchid_deprecated':        {
+        'networks': ['2001:10::/28'],
+        'description': 'Deprecated (previously ORCHID)',
+    },
+    'orchid_v2':                {
+        'networks': ['2001:20::/28'],
+        'description': 'ORCHIDv2',
+    },
+    'documentation':            {
+        'networks': ['2001:db8::/32'],
+        'description': 'Addresses used in documentation',
+    },
+    '6to4':                     {
+        'networks': ['2002::/16'],
+        'description': '6to4 tunneling',
+    },
+    'unique_local':             {
+        'networks': ['fc00::/7'],
+        'description': 'Unique local address',
+    },
+    'link_local':               {
+        'networks': ['fe80::/10'],
+        'description': 'Link-local address',
+    },
+    'multicast':                {
+        'networks': ['ff00::/8'],
+        'description': 'Multicast',
+    },
 }
 
 IPV6_IPV4_TRANSLATION_PREFIXES = (
@@ -439,8 +531,8 @@ class IPv4Address(object):
         return '.'.join(parts)
 
     def __addressclass__(self):
-        for aclass, networks in IPV4_ADDRESS_CLASS_MAP.items():
-            for net in networks:
+        for aclass, details in IPV4_ADDRESS_CLASS_MAP.items():
+            for net in details['networks']:
                 if IPv4Address(net).addressInNetwork(self.ipaddress):
                     return aclass
 
@@ -893,8 +985,8 @@ class IPv6Address(dict):
 
     @property
     def addressclass(self):
-        for aclass, networks in IPV6_ADDRESS_CLASS_MAP.items():
-            for net in networks:
+        for aclass, details in IPV6_ADDRESS_CLASS_MAP.items():
+            for net in details['networks']:
                 if IPv6Address(net).addressInNetwork(self.address):
                     return aclass
 

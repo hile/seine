@@ -21,9 +21,7 @@ can start with following prefix strings:
 """ % ' '.join(LINE_PREFIXES)
 
 script = Script(description=DESCRIPTION)
-script.add_argument('datafile', nargs='?',
-    type=argparse.FileType('r'), default=sys.stdin, help='Input file to sort'
-)
+script.add_argument('datafile', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='Input file to sort')
 args = script.parse_args()
 
 netmap = {}
@@ -31,21 +29,40 @@ netmap = {}
 for l in args.datafile.read().split('\n'):
     if l.strip() == '':
         continue
+
     address = l.strip()
+    prefixed = False
     for prefix in LINE_PREFIXES:
         if address[:len(prefix)] == prefix:
             address = address[len(prefix):]
+            prefixed = True
             break
 
-    try:
-        address = IPv4Address(address)
-    except ValueError:
+    if prefixed:
+        value = address.strip()
         try:
-            address = IPv6Address(address)
+            address = IPv4Address(value)
         except ValueError:
-            script.exit(1, 'ERROR parsing %s' % address)
+            try:
+                address = IPv6Address(address)
+            except ValueError:
+                script.exit(1, 'ERROR parsing %s' % value)
 
-    netmap[address] = l
+        netmap[address] = l
+
+    else:
+        for value in address.split(' '):
+            if value == '':
+                continue
+            try:
+                address = IPv4Address(value)
+            except ValueError:
+                try:
+                    address = IPv6Address(address)
+                except ValueError:
+                    script.exit(1, 'ERROR parsing %s' % value)
+
+            netmap[address] = value
 
 for address in sorted(netmap.keys()):
     print netmap[address]
