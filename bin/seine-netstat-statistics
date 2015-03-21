@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+"""
+Command to view netstat -s counters
+"""
+
+import json
+import time
+
+from systematic.shell import Script, ScriptCommand, ScriptError
+from seine.netstat import filter_counters,NetstatStatistics, NetstatStatisticsError
+
+USAGE = """Show netstat statistics
+
+This command can be used to get by path, list and monitor output from netstat -s counters.
+"""
+
+class NetstatCommand(ScriptCommand):
+    def __init__(self, *args, **kwargs):
+        ScriptCommand.__init__(self, *args, **kwargs)
+        self.netstat = NetstatStatistics()
+
+    def filter(self, counters, args):
+        if 'match' in args and args.match:
+            args.match = [v for x in args.match for v in x.split(',')]
+            counters = filter_counters(counters, args.match)
+
+        if 'ignore' in args and args.ignore:
+            args.ignore = [v for x in args.ignore for v in x.split(',')]
+            counters = filter_counters(counters, args.ignore, negate=True)
+
+        return counters
+
+
+class GetCommand(NetstatCommand):
+    def run(self, args):
+        self.netstat.load()
+        counter = self.netstat.find_by_path(args.counter)
+        if counter is not None:
+            self.message('%s' % counter.value)
+        else:
+            self.message(0)
+            self.exit(1, 'Counter not found: %s' % args.counter)
+
+class JSONCommand(NetstatCommand):
+    def run(self, args):
+        self.netstat.load()
+
+        try:
+            data = json.dumps(self.netstat.as_dict(), indent=2)
+        except ValueError, emsg:
+            self.exit(1, 'Error parsing JSON data: %s' % emsg)
+
+        if args.output_file:
+            try:
+                open(args.output_file, 'wb').write('%s\n' % data)
+            except IOError, (ecode, emsg):
+                self.exit(1, 'Error writing to %s: %s' % (args.output_file, emsg))
+        else:
+            self.message(data)
+
+
+class ListCommand(NetstatCommand):
+    def run(self, args):
+        self.netstat.load()
+
+        for counter in self.filter(self.netstat.all_counters, args):
+            self.message('%s %s' % (counter.path, counter.value))
+
+
+class DeltaCommand(NetstatCommand):
+    def run(self, args):
+        self.netstat.load()
+
+        while True:
+            ns, counters = self.netstat.delta
+            counters = self.filter(counters, args)
+            for counter in counters:
+                self.message('%s %s' % (counter.path, counter.value))
+            time.sleep(args.interval)
+
+
+script = Script(description=USAGE)
+
+c = script.add_subcommand(GetCommand('get', 'Get netstat counter'))
+c.add_argument('counter', help='Path to counter to get')
+
+c = script.add_subcommand(DeltaCommand('delta', 'Show delta of changed counters'))
+c.add_argument('-i', '--interval', type=int, default=60,  help='Delta interval')
+c.add_argument('-u', '--ignore', action='append',  help='Counter path patterns to ignore')
+c.add_argument('-m', '--match', action='append', help='Counter path patterns to match')
+
+c = script.add_subcommand(JSONCommand('json', 'Dump all counters in JSON'))
+c.add_argument('-o', '--output-file', help='Output file path')
+
+c = script.add_subcommand(ListCommand('list', 'List netstat counters'))
+c.add_argument('-u', '--ignore', action='append',  help='Counter path patterns to ignore')
+c.add_argument('-m', '--match', action='append', help='Counter path patterns to match')
+
+args = script.parse_args()
