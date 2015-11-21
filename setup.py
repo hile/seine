@@ -3,12 +3,11 @@
 import os
 import glob
 from setuptools import setup, find_packages
-
-VERSION='3.0.2'
+from seine import __version__
 
 setup(
     name = 'seine',
-    version = VERSION,
+    version = __version__,
     license = 'PSF',
     keywords = 'network utility scripts and classes for python',
     url = 'https://github.com/hile/seine',
@@ -18,7 +17,7 @@ setup(
     packages = find_packages(),
     scripts = glob.glob('bin/*'),
     install_requires = (
-        'systematic>=4.2.6',
+        'systematic>=4.4.0',
         'requests',
         'python-dateutil',
         'dnspython',

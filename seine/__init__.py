@@ -2,5 +2,4 @@
 Classes and utilities for network address manipulations
 """
 
-__all__  = ['address','dns','proxyconfig','snmp','url','whois']
-
+__version__ = '3.1.0'
