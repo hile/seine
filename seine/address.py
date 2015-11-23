@@ -312,31 +312,29 @@ class IPv4Address(object):
                 (ip,mask) = address.split('/', 1)
             except ValueError:
                 ip = address.strip()
-                if netmask:
-                    try:
-                        netmask = self.__parseaddress__(netmask)
-                        if netmask == UINT_MAX:
-                            mask = 32
-                        else:
-                            if bin(UINT_MAX &~ netmask)[2:].count('0')>0:
-                                raise ValueError
-                            mask = 32-len(bin(UINT_MAX &~ netmask))+2
 
-                    except ValueError:
-                        raise ValueError('Invalid netmask value: %s' % netmask)
-
-                elif self.oldformat:
-                    if address.count('.') == 2:
-                        mask = 24
-                    elif address.count('.') == 1:
-                        mask = 16
-                    elif address.count('.') == 0:
-                        mask = 8
-                    else:
-                        mask = 32
-
-                else:
+        if netmask:
+            try:
+                netmask = self.__parseaddress__(netmask)
+                if netmask == UINT_MAX:
                     mask = 32
+                else:
+                    if bin(UINT_MAX &~ netmask)[2:].count('0')>0:
+                        raise ValueError
+                    mask = 32 - len(bin(UINT_MAX &~ netmask)) + 2
+
+            except ValueError:
+                raise ValueError('Invalid netmask value: %s' % netmask)
+
+        elif self.oldformat:
+            if address.count('.') == 2:
+                mask = 24
+            elif address.count('.') == 1:
+                mask = 16
+            elif address.count('.') == 0:
+                mask = 8
+            else:
+                mask = 32
 
         try:
             mask = int(mask)
@@ -601,8 +599,14 @@ class IPv4Address(object):
         if self.bitmask == 32:
             return self.ipaddress
         if self.bitmask == 31:
-            return self.__long2address__(self.raw_value & self.mask)
-        return IPv4Address((self.raw_value & self.mask)+1)
+            return self.__long2address__(
+                self.raw_value & self.mask,
+                netmask=self.netmask,
+            )
+        return IPv4Address(
+            (self.raw_value & self.mask) + 1,
+            netmask=self.netmask
+        )
 
     @property
     def last(self):
@@ -611,7 +615,8 @@ class IPv4Address(object):
         if self.bitmask == 31:
             return self.__long2address__((self.raw_value & self.mask)+1)
         return IPv4Address(
-            (self.raw_value & self.mask) + (UINT_MAX &~ self.mask) - 1
+            (self.raw_value & self.mask) + (UINT_MAX &~ self.mask) - 1,
+            netmask=self.netmask
         )
 
     @property
@@ -619,14 +624,14 @@ class IPv4Address(object):
         address = self.raw_value+1
         if address >= UINT_MAX:
             return None
-        return IPv4Address(address)
+        return IPv4Address(address, netmask=self.netmask)
 
     @property
     def prev(self):
         address = self.raw_value-1
         if address < 0:
             return None
-        return IPv4Address(address)
+        return IPv4Address(address, netmask=self.netmask)
 
     @property
     def next_network(self):
