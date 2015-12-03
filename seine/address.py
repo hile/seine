@@ -299,9 +299,11 @@ class IPv4Address(object):
         self.oldformat = oldformat
         if type(address) != int and len(address) == 4 and not address.translate(None, string.digits+'abcdef'):
             address = '.'.join(str(x) for x in struct.unpack('BBBB', str(address)))
+            mask = 32
 
         elif isinstance(address, basestring) and address[:2] == '0x':
             address = long(address, 16)
+            mask = 32
 
         if type(address) in [int,long]:
             ip = address
@@ -312,6 +314,7 @@ class IPv4Address(object):
                 (ip,mask) = address.split('/', 1)
             except ValueError:
                 ip = address.strip()
+                mask = 32
 
         if netmask:
             try:

@@ -2,4 +2,4 @@
 Classes and utilities for network address manipulations
 """
 
-__version__ = '3.1.1'
+__version__ = '3.1.2'
