@@ -165,7 +165,7 @@ class OIDPrefix(object):
 
 class Item(OIDPrefix):
     def __init__(self, oid, key, value=None, readonly=True):
-        OIDPrefix.__init__(self, oid)
+        super(Item, self).__init__(oid)
         self.readonly = readonly
 
         if key in SNMP_DATA_TYPE_MAP.keys():
@@ -233,7 +233,7 @@ class Tree(OIDPrefix):
 
     """
     def __init__(self, oid):
-        OIDPrefix.__init__(self, oid)
+        super(Tree, self).__init__(oid)
 
         self.items = []
         self.item_index = {}
@@ -612,11 +612,12 @@ class SNMPAgent(Script):
         agent.run()
     """
     def __init__(self, oid, reload_interval=60):
-        Script.__init__(self)
+        super(SNMPAgent, self).__init__()
         self.log = Logger('snmp').default_stream
 
         self.reload_interval = reload_interval
         self.last_reload = None
+        self.args = None
 
         self.add_argument('-g', '--get', help='SNMP GET request')
         self.add_argument('-n', '--next', help='SNMP GET request')
@@ -631,6 +632,11 @@ class SNMPAgent(Script):
         """
         self.log.debug('Reloading from signal')
         self.reload()
+
+    def parse_args(self):
+        if self.args is None:
+            self.args = super(SNMPAgent, self).parse_args()
+        return self.args
 
     def register_tree(self, oid):
         return self.tree.add(Tree(oid))
@@ -694,23 +700,24 @@ class SNMPAgent(Script):
            acts as permanent snmpd pass_persist agent.
         """
 
-        signal.signal(signal.SIGHUP, self.__SIGHUP__)
-        args = self.parse_args()
+        self.args = self.parse_args()
 
-        if args.tree:
+        signal.signal(signal.SIGHUP, self.__SIGHUP__)
+
+        if self.args.tree:
             self.message(self.tree.oid_string)
 
-        elif args.get:
-            entry = self.GET(args.get)
+        elif self.args.get:
+            entry = self.GET(self.args.get)
             if entry is not None:
                 sys.stdout.write('%s\n' % entry.get_response)
 
-        elif args.next:
-            entry = self.NEXT(args.next)
+        elif self.args.next:
+            entry = self.NEXT(self.args.next)
             if entry is not None:
                 sys.stdout.write('%s\n' % entry.next_response)
 
-        if args.tree or args.get or args.next:
+        if self.args.tree or self.args.get or self.args.next:
             self.exit(0)
 
         EOF = ''
