@@ -1083,15 +1083,6 @@ class IPv6Address(dict):
     def last(self):
         return IPv6Address(
             self.__addrfmt__(
-                int(self.network_bitstring,16)+2**(128-self.bitmask)-2,
-                self.bitmask
-            )
-        )
-
-    @property
-    def broadcast(self):
-        return IPv6Address(
-            self.__addrfmt__(
                 int(self.network_bitstring,16)+2**(128-self.bitmask)-1,
                 self.bitmask
             )
