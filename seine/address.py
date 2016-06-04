@@ -928,17 +928,18 @@ class IPv6Address(dict):
         revnibbles = '.'.join(c for c in '{0:032x}'.format(raw_value)[::-1])
 
         network_value = raw_value &~ ( U128_MAX & (2**(128-bitmask) - 1) )
-        network_string = '%x' % network_value
+        network_string = '%032x' % network_value
         if bitmask < 96:
             network_subs = [sub for sub in subs[:((128 - bitmask) / 16)]]
-            if network_subs:
-                while network_subs[-1] == 0:
-                    network_subs.pop()
-            network = '{0}::/{1}'.format(':'.join('%x' % int(network_string[i:i+4], 16) for i in range(0, len(network_subs) * 4, 4)), bitmask)
+            if network_subs.count(0) != len(network_subs):
+                if network_subs:
+                    while network_subs[-1] == 0:
+                        network_subs.pop()
+                network = '{0}::/{1}'.format(':'.join('%x' % int(network_string[i:i+4], 16) for i in range(0, len(network_subs) * 4, 4)), bitmask)
+            else:
+                network = '::/{0}'.format(bitmask)
             network_bitstring = '0x{0:032x}'.format(network_value)
-
         elif bitmask < 128:
-
             network = '::{0}/{1}'.format(network_string, bitmask)
             network_bitstring = '0x{0:032x}'.format(network_value)
         else:
