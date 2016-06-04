@@ -24,11 +24,12 @@ class OUIPrefix(object):
 
 class OUIPrefixLookup(dict):
     def __init__(self, path=OUI_CACHE_PATH):
-        if not os.path.isfile(path):
+        self.path = path
+        if not os.path.isfile(self.path):
             self.update()
 
         entry = None
-        for l in [x.rstrip() for x in open(path, 'r').readlines()]:
+        for l in [x.rstrip() for x in open(self.path, 'r').readlines()]:
             if l.strip() == '' or  BASE_16_LINE.match(l):
                 continue
 
@@ -43,7 +44,7 @@ class OUIPrefixLookup(dict):
 
     def update(self):
         res = requests.get(OUI_URL)
-        open(path, 'w').write(res.content)
+        open(self.path, 'w').write(res.content)
 
     def match(self, address):
         if not isinstance(address, EthernetMACAddress):

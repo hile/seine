@@ -20,7 +20,8 @@ IPV4_ADDRESS_CLASS_MAP = {
     },
     'carriernat':           {
         'networks': ['100.64.0.0/10'],
-        'description': 'Used for communications between a service provider and its subscribers when using a Carrier-grade NAT, as specified by RFC 6598',
+        'description': 'Used for communications between a service provider and its subscribers when using a ' +
+                       ' Carrier-grade NAT, as specified by RFC 6598',
     },
 
     'loopback':             {
@@ -29,7 +30,9 @@ IPV4_ADDRESS_CLASS_MAP = {
     },
     'link-local':           {
         'networks': ['169.254.0.0/16'],
-        'description': 'Used for link-local addresses between two hosts on a single link when no IP address is otherwise specified, such as would have normally been retrieved from a DHCP server, as specified by RFC 3927',
+        'description': 'Used for link-local addresses between two hosts on a single link when no IP address is ' +
+                       'otherwise specified, such as would have normally been retrieved from a DHCP server, as ' +
+                       'specified by RFC 3927',
     },
     'spar':                 {
         'networks': ['192.0.0.0/24'],
@@ -37,7 +40,8 @@ IPV4_ADDRESS_CLASS_MAP = {
     },
     'testnet':              {
         'networks': ['192.0.2.0/24'],
-        'description': 'Assigned as "TEST-NET" in RFC 5737 for use solely in documentation and example source code and should not be used publicly',
+        'description': 'Assigned as "TEST-NET" in RFC 5737 for use solely in documentation and example source ' +
+                       'code and should not be used publicly',
     },
     '6to4anycast':          {
         'networks': ['192.88.99.0/24'],
@@ -45,15 +49,18 @@ IPV4_ADDRESS_CLASS_MAP = {
     },
     'test_inter_network':     {
         'networks': ['198.18.0.0/15'],
-        'description': 'Used for testing of inter-network communications between two separate subnets as specified in RFC 2544',
+        'description': 'Used for testing of inter-network communications between two separate subnets ' +
+                       'as specified in RFC 2544',
     },
     'testnet_2':            {
         'networks': ['198.51.100.0/24'],
-        'description': 'Used for testing of inter-network communications between two separate subnets as specified in RFC 2544',
+        'description': 'Used for testing of inter-network communications between two separate subnets ' +
+                       'as specified in RFC 2544',
     },
     'testnet_3':            {
         'networks': ['203.0.113.0/24'],
-        'description': 'Assigned as "TEST-NET-3" in RFC 5737 for use solely in documentation and example source code and should not be used publicly.',
+        'description': 'Assigned as "TEST-NET-3" in RFC 5737 for use solely in documentation and example ' +
+                       'source code and should not be used publicly.',
     },
     'rfc1918':              {
         'networks': ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
@@ -61,7 +68,8 @@ IPV4_ADDRESS_CLASS_MAP = {
     },
     'multicast':            {
         'networks': ['224.0.0.0/4'],
-        'description': 'Reserved for multicast assignments as specified in RFC 5771. 233.252.0.0/24 is assigned as "MCAST-TEST-NET" for use solely in documentation and example source code.',
+        'description': 'Reserved for multicast assignments as specified in RFC 5771. 233.252.0.0/24 is ' +
+                       'assigned as "MCAST-TEST-NET" for use solely in documentation and example source code.',
     },
     'reserved':             {
         'networks': ['240.0.0.0/4'],
@@ -189,7 +197,7 @@ class MediaAddressType(SortableContainer):
             return cmp(self.value, other.value)
 
         elif isinstance(other, MediaAddressType):
-            raise ValueError('Error comparing %s to %s' % (
+            raise ValueError('Error comparing {0} to {1}'.format(
                     self.__class__.__name__,
                     other.__class__.__name__,
                 ))
@@ -200,7 +208,7 @@ class MediaAddressType(SortableContainer):
                 return cmp(self.value, other.value)
 
             except ValueError:
-                raise ValueError('Compared value is not valid %s value: %s' % (
+                raise ValueError('Compared value is not valid {0} value: {1}'.format(
                     self.__class__.__name__,
                     other
                 ))
@@ -231,9 +239,9 @@ class EthernetMACAddress(MediaAddressType):
                     raise ValueError
 
         except ValueError:
-            raise ValueError('Not a Ethernet MAC address: %s' % value)
+            raise ValueError('Not a Ethernet MAC address: {0}'.format(value))
 
-        self.address = ':'.join(['%02x'%p for p in parts])
+        self.address = ':'.join(['%02x' % p for p in parts])
         self.value = sum([parts[-(len(parts)-i)]<<8*(len(parts)-i-1) for i in range(len(parts))])
 
 class FirewireLocalLinkAddress(MediaAddressType):
@@ -261,9 +269,9 @@ class FirewireLocalLinkAddress(MediaAddressType):
                     raise ValueError
 
         except ValueError:
-            raise ValueError('Not a Firewire local link address: %s' % value)
+            raise ValueError('Not a Firewire local link address: {0}'.format(value))
 
-        self.address = ':'.join(['%02x'%p for p in parts])
+        self.address = ':'.join(['%02x' % p for p in parts])
         self.value = sum([parts[-(len(parts)-i)]<<8*(len(parts)-i-1) for i in range(len(parts))])
 
 
@@ -327,7 +335,7 @@ class IPv4Address(object):
                     mask = 32 - len(bin(UINT_MAX &~ netmask)) + 2
 
             except ValueError:
-                raise ValueError('Invalid netmask value: %s' % netmask)
+                raise ValueError('Invalid netmask value: {0}'.format(netmask))
 
         elif self.oldformat:
             if address.count('.') == 2:
@@ -345,7 +353,7 @@ class IPv4Address(object):
                 raise ValueError
             self.mask = UINT_MAX ^ (2**(32-mask)-1)
         except ValueError:
-            raise ValueError('Invalid netmask: %s' % mask)
+            raise ValueError('Invalid netmask: {0}'.format(mask))
 
         try:
             self.raw_value = self.__parseaddress__(ip)
@@ -354,7 +362,7 @@ class IPv4Address(object):
                 self.raw_value = self.__parseaddress__('0.0.0.0')
                 self.mask = 0
             else:
-                raise ValueError('Invalid address: %s' % address)
+                raise ValueError('Invalid address: {0}'.format(address))
 
     def __parsenumber__(self, value):
         """
@@ -372,7 +380,7 @@ class IPv4Address(object):
         else:
             return int(value)
 
-        raise ValueError('Invalid number %s' % value)
+        raise ValueError('Invalid number {0}'.format(value))
 
     def __parseaddress__(self, value):
         """
@@ -494,7 +502,7 @@ class IPv4Address(object):
             return cmp(self.raw_value, other)
 
         else:
-            raise ValueError("Can't compare IPv4Address to %s" % type(other))
+            raise ValueError("Can't compare IPv4Address to {0}".format(type(other)))
 
     def __eq__(self, other):
         return self.__cmp__(other) == 0
@@ -550,13 +558,13 @@ class IPv4Address(object):
     @property
     def cidr_address(self):
         if self.bitmask==32:
-            return '%s' % self.ipaddress
+            return '{0}'.format(self.ipaddress)
         else:
-            return '%s/%s' % (self.ipaddress, self.bitmask)
+            return '{0}/{1}'.format(self.ipaddress, self.bitmask)
 
     @property
     def bitstring(self):
-        return '0x%s' % ''.join(self.hexbytes)
+        return '0x{0}'.format(''.join(self.hexbytes))
 
     @property
     def hexbytes(self):
@@ -641,29 +649,29 @@ class IPv4Address(object):
         address = self.raw_value+2**(32-self.bitmask)
         if address >= UINT_MAX:
             return None
-        return IPv4Address('%s/%s' % (address, self.bitmask))
+        return IPv4Address('{0}/{1}'.format(address, self.bitmask))
 
     @property
     def previous_network(self):
         address = self.raw_value-2**(32-self.bitmask)
         if address < 0:
             return None
-        return IPv4Address('%s/%s' % (address, self.bitmask))
+        return IPv4Address('{0}/{1}'.format(address, self.bitmask))
 
     @property
     def dns_reverse_ptr(self):
-        return '%s.in-addr.arpa.' % '.'.join(reversed(self.ipaddress.split('.')))
+        return '{0}.in-addr.arpa.'.format('.'.join(reversed(self.ipaddress.split('.'))))
 
     @property
     def dns_reverse_origin(self):
         if self.bitmask >= 24:
-            return '%s.in-addr.arpa.' % '.'.join(reversed(self.ipaddress.split('.')[:3]))
+            return '{0}.in-addr.arpa.'.format('.'.join(reversed(self.ipaddress.split('.')[:3])))
         elif self.bitmask >= 16:
-            return '%s.in-addr.arpa.' % '.'.join(reversed(self.ipaddress.split('.')[:2]))
+            return '{0}.in-addr.arpa.'.format('.'.join(reversed(self.ipaddress.split('.')[:2])))
         elif self.bitmask >= 8:
-            return '%s.in-addr.arpa.' % self.ipaddress.split('.')[0]
+            return '{0}.in-addr.arpa.'.format(self.ipaddress.split('.')[0])
         else:
-            raise ValueError("Can't create reverse origin for mask %s" % self.bitmask)
+            raise ValueError("Can't create reverse origin for mask {0}".format(self.bitmask))
 
     def __getitem__(self, item):
         try:
@@ -671,7 +679,7 @@ class IPv4Address(object):
         except TypeError:
             raise KeyError
         except AttributeError, e:
-            raise KeyError('No such IPv4Address item: %s' % item)
+            raise KeyError('No such IPv4Address item: {0}'.format(item))
 
     def addressInNetwork(self, ip):
         """
@@ -718,22 +726,22 @@ class IPv4Address(object):
 
     def split(self, bitmask, maxcount=None):
         if self.bitmask >= 30:
-            raise ValueError("Can't split network with mask %s" % self.bitmask)
+            raise ValueError("Can't split network with mask {0}".format(self.bitmask))
 
         try:
             bitmask = int(bitmask)
             if bitmask < 1 or bitmask > 30:
                 raise ValueError
         except ValueError:
-            raise ValueError('Invalid split mask: %s' % bitmask)
+            raise ValueError('Invalid split mask: {0}'.format(bitmask))
 
         if bitmask <= self.bitmask:
-            raise ValueError('Split mask must be larger than network mask %s' % self.bitmask)
+            raise ValueError('Split mask must be larger than network mask {0}'.format(self.bitmask))
 
         last = self.last
 
-        networks = [IPv4Address('%s/%s' % (self.ipaddress, bitmask))]
-        next = IPv4Address('%s/%s' % (self.raw_value+2**(32-bitmask), bitmask))
+        networks = [IPv4Address('{0}/{1}'.format((self.ipaddress, bitmask)))]
+        next = IPv4Address('{0}/{1}'.format((self.raw_value+2**(32-bitmask), bitmask)))
         while True:
             if maxcount is not None and maxcount < len(networks):
                 break
@@ -741,7 +749,7 @@ class IPv4Address(object):
 
             if next.last.raw_value >= last.raw_value:
                 break
-            next = IPv4Address('%s/%s' % (next.raw_value + 2**(32-bitmask), bitmask))
+            next = IPv4Address('{0}/{1}'.format((next.raw_value + 2**(32-bitmask), bitmask)))
 
         return networks
 
@@ -758,7 +766,7 @@ class IPv4AddressRangeList(list):
         try:
             (parts) = value.split('.', 3)
         except ValueError:
-            raise ValueError('Unsupported value: %s' % value)
+            raise ValueError('Unsupported value: {0}'.format(value))
 
         part_lists = []
         for i, field in enumerate(parts[:-1]):
@@ -825,7 +833,7 @@ class IPv4AddressRange(object):
                 self.first = IPv4Address(network.network)
                 self.last = IPv4Address(network.broadcast)
             except ValueError:
-                raise ValueError('Error parsing %s: %s' % (first,e))
+                raise ValueError('Error parsing {0}: {1}'.format(first,e))
 
         else:
             # Support nmap format like 1.2.3.1-254 for 1.2.3.1 to 1.2.3.254
@@ -833,22 +841,22 @@ class IPv4AddressRange(object):
                 (start_ip,subnet_last) = first.split('-', 1)
                 (start_ip, subnet_last) = first.split('-', 1)
                 self.first = IPv4Address(start_ip)
-                last = '%s.%s' % (
+                last = '{0}.{1}'.format(
                     '.'.join(self.first.ipaddress.split('.')[:-len(subnet_last.split('.'))]),
                     subnet_last
                 )
                 self.last = IPv4Address(last.lstrip('.'))
-            except ValueError,e:
-                raise ValueError('Error parsing %s: %s' % (first,e))
+            except ValueError, emsg:
+                raise ValueError('Error parsing {0}: {1}'.format(first, emsg))
 
         if self.last < self.first:
             raise ValueError('Invalid range: last address is smaller than first address')
 
     def __repr__(self):
-        return '%s-%s' % (self.first.ipaddress, self.last.ipaddress)
+        return '{0}-{1}'.format(self.first.ipaddress, self.last.ipaddress)
 
     def __str__(self):
-        return '%s-%s' % (self.first.ipaddress, self.last.ipaddress)
+        return '{0}-{1}'.format(self.first.ipaddress, self.last.ipaddress)
 
     def __len__(self):
         """
@@ -880,7 +888,11 @@ class IPv4AddressRange(object):
         return True
 
 class IPv6Address(dict):
+    """IPv6 address
+
+    """
     def __init__(self, value):
+
         if value == 'default':
             value = '::0/0'
 
@@ -896,94 +908,52 @@ class IPv6Address(dict):
                 raise ValueError
 
         except ValueError:
-            raise ValueError('Invalid IPv6 mask %s' % bitmask)
+            raise ValueError('Invalid IPv6 mask {0}'.format(value))
 
+        subs = address.split(':')
         try:
-            subs = address.split(':')
-            if len(subs) == 1:
-                raise ValueError
+            split = subs.index('')
+            prefix = subs[:split]
+            suffix = subs[split + 1:]
+            subs = prefix + ['0'] * (8 - len(prefix) - len(suffix)) + suffix
+            subs =  map(lambda x: x != '' and int(x, 16) or 0, subs)
+        except ValueError:
+            subs = [int(v, 16) for v in subs]
 
-            if subs[-1].count('.') == 3:
-                # IPv6/IPv4 mapped address
-                ipv4_mapping = IPv4Address(subs[-1])
-                subs = subs[:-1] + [
-                    ipv4_mapping.bitstring[2:6],
-                    ipv4_mapping.bitstring[6:10],
-                ]
-            else:
-                ipv4_mapping = None
+        if len(subs) != 8:
+            raise ValueError('Invalid IPv6 address {0}'.format(value))
 
-            if subs.count('') == len(subs):
-                # Address format like ::/96
-                if int(bitmask) == 0:
-                    bitstring = '0'
-                else:
-                    bitstring = '0' * (int(bitmask) / 4)
+        bitstring = '{0}'.format(''.join('%04x' % v for v in subs))
+        raw_value = long('0x{0}'.format(bitstring), 16)
+        revnibbles = '.'.join(c for c in '{0:032x}'.format(raw_value)[::-1])
 
-            elif subs.count('') > 0:
-                # Address with shortcuts like (fe80::1/64)
+        network_value = raw_value &~ ( U128_MAX & (2**(128-bitmask) - 1) )
+        network_string = '%x' % network_value
+        if bitmask < 96:
+            network_subs = [sub for sub in subs[:((128 - bitmask) / 16)]]
+            if network_subs:
+                while network_subs[-1] == 0:
+                    network_subs.pop()
+            network = '{0}::/{1}'.format(':'.join('%x' % int(network_string[i:i+4], 16) for i in range(0, len(network_subs) * 4, 4)), bitmask)
+            network_bitstring = '0x{0:032x}'.format(network_value)
 
-                pad = subs.index('')
-                if subs[pad+1] == '':
-                    subs.pop(pad+1)
+        elif bitmask < 128:
 
-                if subs[0] != '':
-                    start = ''.join(['%04x' % int(s, 16) for s in subs[:subs.index('')]])
-                    end = ''.join(['%04x' % int(s, 16) for s in subs[subs.index('')+1:]])
-                    bitstring = '%s%s%s' % (start, '0' * (32-len(start) - len(end)), end)
-                else:
-                    end = ''.join(['%04x' % int(s, 16) for s in subs[1:]])
-                    bitstring = '%s%s' % ('0' * (32-len(end)), end)
-
-            else:
-                bitstring = ''.join(['%04x' % int(s, 16) for s in subs])[2:]
-
-            hex_bitstring = '0x%s' % bitstring
-
-            addrval = long(hex_bitstring, 16)
-            network_bitstring = '0x%032x' % (
-                addrval &~ ( U128_MAX & (2**(128-bitmask)-1) )
-            )
-
-            nbs = [int(network_bitstring[2:][i:i+4], 16) for i in range(0, 32, 4)]
-            if len(nbs) > nbs.count(0):
-                while nbs[-1] == 0:
-                    nbs = nbs[:-1]
-
-            network = '%s::/%s' % (':'.join(['%x' % n for n in nbs]), bitmask)
-
-            try:
-                revnibbles = '.'.join(
-                    reversed([bitstring[x] for x in range(0, len(bitstring))])
-                )
-            except IndexError, emsg:
-                raise ValueError('Error splitting bitstring for revnibbles: %s' % emsg)
-
-        except ValueError,emsg:
-            raise ValueError('Invalid IPv6 address: %s: %s' % (value, emsg))
-
-        if not address.endswith('::'):
-            self['type'] = 'address'
+            network = '::{0}/{1}'.format(network_string, bitmask)
+            network_bitstring = '0x{0:032x}'.format(network_value)
         else:
-            self['type'] = 'subnet'
-
-        if ipv4_mapping is not None:
-            valid_translation_prefix = False
-            for prefix in IPV6_IPV4_TRANSLATION_PREFIXES:
-                if address[:len(prefix)] == prefix:
-                    valid_translation_prefix = True
-                    break
-            if not valid_translation_prefix:
-                raise ValueError('IPv6/IPv4 translation not supported for address %s' % address)
+            network = None
+            network_bitstring = None
 
         self.update({
+            'type': address.endswith('::') and 'subnet' or 'address',
             'address':  address,
-            'bitstring': hex_bitstring,
             'bitmask': bitmask,
-            'network': network,
+            'bitstring': '0x{0:032x}'.format(raw_value),
             'network_bitstring': network_bitstring,
-            'revnibbles_int': '%s.ip6.int.' % revnibbles,
-            'revnibbles_arpa': '%s.ip6.arpa.' % revnibbles,
+            'network': network,
+            'revnibbles_int': '{0}.ip6.int.'.format(revnibbles),
+            'revnibbles_arpa': '{0}.ip6.arpa.'.format(revnibbles),
         })
 
 
@@ -1028,7 +998,7 @@ class IPv6Address(dict):
         try:
             return self[attr]
         except KeyError:
-            raise AttributeError('No such IPv6Address attribute: %s' % attr)
+            raise AttributeError('No such IPv6Address attribute: {0}'.format(attr))
 
     def __hash__(self):
         return long(self.address)
@@ -1064,11 +1034,11 @@ class IPv6Address(dict):
         return self.__cmp__(other) >= 0
 
     def __repr__(self):
-        return '%s/%s' % (self.address, self.bitmask)
+        return '{0}/{1}'.format(self.address, self.bitmask)
 
     def __addrfmt__(self, address, mask):
         s = '%032x' % address
-        value = ['%x' % int(s[i:i+4],16) for i in range(0,32,4)]
+        value = ['%x' % int(s[i:i+4], 16) for i in range(0,32,4)]
 
         # Find the longest chain of 0's to truncate
         longest = 0
@@ -1098,7 +1068,7 @@ class IPv6Address(dict):
         if value.endswith(':'):
             value += ':'
 
-        return '%s/%s' % (value,mask)
+        return '{0}/{1}'.format(value, mask)
 
     @property
     def first(self):
@@ -1164,7 +1134,7 @@ class IPv6Address(dict):
             try:
                 value = IPv6Address(value)
             except ValueError,e:
-                raise ValueError('Invalid IPv6Address: %s' % value)
+                raise ValueError('Invalid IPv6Address: {0}'.format(value))
 
         value = int(value.bitstring,16)
         first = int(self.network_bitstring,16)
@@ -1179,7 +1149,7 @@ class IPv6Address(dict):
             try:
                 address = IPv6Address(address)
             except ValueError,e:
-                raise ValueError('Invalid IPv6Address: %s' % address)
+                raise ValueError('Invalid IPv6Address: {0}'.format(address))
 
         address = int(address.bitstring, 16)
         first = int(self.network_bitstring, 16) + 1
@@ -1236,7 +1206,7 @@ class IPv4AddressList(dict):
             elif len(iprange) == 1:
                 addresses.append(iprange[0])
             else:
-                raise NotImplementedError('IMPOSSIBLE BUG: %s' % iprange)
+                raise NotImplementedError('IMPOSSIBLE BUG: {0}'.format(iprange))
 
             iprange = [v]
 
@@ -1263,18 +1233,17 @@ class SubnetPrefixIterator(object):
                 self.address = IPv6Address(address)
                 self.last = long(self.address.last.bitstring, 16)
             except ValueError:
-                raise ValueError('Not valid IPv4 or IPv6 address: %s' % address)
+                raise ValueError('Not valid IPv4 or IPv6 address: {0}'.format(address))
 
         if isinstance(self.address,IPv4Address) and self.address.bitmask>=30:
-            raise ValueError("Can't split address with mask %s" % self.address.bitmask)
+            raise ValueError("Can't split address with mask {0}".format(self.address.bitmask))
         if self.address.bitmask >= splitmask:
             raise ValueError('Split mask must be smaller than network mask')
 
         if isinstance(self.address, IPv4Address):
-            self.first = IPv4Address('%s/%s' % (self.address.network, splitmask))
+            self.first = IPv4Address('{0}/{1}'.format(self.address.network, splitmask))
         if isinstance(self.address,IPv6Address):
-            a = self.address.network.split('/')[0]
-            self.first = IPv6Address('%s/%s' % (a, splitmask))
+            self.first = IPv6Address('{0}/{1}'.format(self.address.network.split('/')[0], splitmask))
         self.__next = self.first
 
     def __iter__(self):
@@ -1317,4 +1286,4 @@ def parse_address(value):
         except ValueError:
             pass
 
-    raise ValueError('Unknown address format: %s' % value)
+    raise ValueError('Unknown address format: {0}'.format(value))
