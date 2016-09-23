@@ -56,7 +56,7 @@ for network in args.addresses:
                         print '%-16s %s' % (a.ipaddress,','.join(ptrs))
                     else:
                         script.log.info('%-16s no PTR records' % a.ipaddress)
-                except QueryError,e:
+                except QueryError as e:
                     script.exit(1,'Error querying DNS server: %s' % e)
             else:
                 script.message('%s' % a.ipaddress)

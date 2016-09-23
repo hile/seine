@@ -26,7 +26,7 @@ DATE_FIELD_MAP = {
 DATE_PARSER = lambda value: datetime.strptime(value, '%d-%b-%Y').date()
 # Registrations before good bookkeeping
 OLD_DATE_BANNER = 'before Aug-1996'
-OLD_DATE_VALUE = date(1996,8,01)
+OLD_DATE_VALUE = date(1996, 8, 1)
 
 RE_NS_LIST = re.compile('(?P<ns>.*) (?P<addresses>.*)$')
 END_HEADER_PREFIX = 'WHOIS lookup made at'

@@ -144,8 +144,8 @@ try:
     type(bin)
 except NameError:
     def bin(str,pad32bits=True):
-        if type(str) not in [int,long]:
-            str = long(str)
+        if type(str) != int:
+            str = int(str)
         t={
             '0':'000','1':'001','2':'010','3':'011',
             '4':'100','5':'101','6':'110','7':'111'
@@ -187,9 +187,6 @@ class MediaAddressType(SortableContainer):
         return self.value
 
     def __int__(self):
-        return self.value
-
-    def __long__(self):
         return self.value
 
     def __cmp__(self, other):
@@ -309,11 +306,11 @@ class IPv4Address(object):
             address = '.'.join(str(x) for x in struct.unpack('BBBB', str(address)))
             mask = 32
 
-        elif isinstance(address, basestring) and address[:2] == '0x':
-            address = long(address, 16)
+        elif isinstance(address, str) and address[:2] == '0x':
+            address = int(address, 16)
             mask = 32
 
-        if type(address) in [int,long]:
+        if type(address) == int:
             ip = address
             mask = 32
 
@@ -358,7 +355,7 @@ class IPv4Address(object):
         try:
             self.raw_value = self.__parseaddress__(ip)
         except ValueError:
-            if isinstance(address,basestring) and address=='default':
+            if isinstance(address, str) and address=='default':
                 self.raw_value = self.__parseaddress__('0.0.0.0')
                 self.mask = 0
             else:
@@ -488,10 +485,10 @@ class IPv4Address(object):
         return last-first
 
     def __hash__(self):
-        return long(self.raw_value)
+        return int(self.raw_value)
 
     def __cmp__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             other = IPv4Address(other)
             return cmp(self.raw_value, other.raw_value)
 
@@ -678,7 +675,7 @@ class IPv4Address(object):
             return getattr(self, item)
         except TypeError:
             raise KeyError
-        except AttributeError, e:
+        except AttributeError:
             raise KeyError('No such IPv4Address item: {0}'.format(item))
 
     def addressInNetwork(self, ip):
@@ -846,8 +843,8 @@ class IPv4AddressRange(object):
                     subnet_last
                 )
                 self.last = IPv4Address(last.lstrip('.'))
-            except ValueError, emsg:
-                raise ValueError('Error parsing {0}: {1}'.format(first, emsg))
+            except ValueError as e:
+                raise ValueError('Error parsing {0}: {1}'.format(first, e))
 
         if self.last < self.first:
             raise ValueError('Invalid range: last address is smaller than first address')
@@ -1002,7 +999,7 @@ class IPv6Address(dict):
             raise AttributeError('No such IPv6Address attribute: {0}'.format(attr))
 
     def __hash__(self):
-        return long(self.address)
+        return int(self.address)
 
     def __cmp__(self, other):
         if not hasattr(other, 'address'):
@@ -1125,7 +1122,7 @@ class IPv6Address(dict):
         if type(value) is not IPv6Address:
             try:
                 value = IPv6Address(value)
-            except ValueError,e:
+            except ValueError:
                 raise ValueError('Invalid IPv6Address: {0}'.format(value))
 
         value = int(value.bitstring,16)
@@ -1140,7 +1137,7 @@ class IPv6Address(dict):
         if type(address) is not IPv6Address:
             try:
                 address = IPv6Address(address)
-            except ValueError,e:
+            except ValueError:
                 raise ValueError('Invalid IPv6Address: {0}'.format(address))
 
         address = int(address.bitstring, 16)
@@ -1157,8 +1154,7 @@ class IPv4AddressList(dict):
             if not isinstance(v,IPv4Address):
                 v = IPv4Address(v)
 
-            if self.has_key(v.address):
-                print 'Duplicate address'
+            if v.address in self:
                 continue
 
             self[v.address] = v
@@ -1220,10 +1216,10 @@ class SubnetPrefixIterator(object):
         try:
             self.address = IPv4Address(address)
             self.last = self.address.bitmask <= 29 and self.address.last.address or None
-        except ValueError,emsg:
+        except ValueError:
             try:
                 self.address = IPv6Address(address)
-                self.last = long(self.address.last.bitstring, 16)
+                self.last = int(self.address.last.bitstring, 16)
             except ValueError:
                 raise ValueError('Not valid IPv4 or IPv6 address: {0}'.format(address))
 
@@ -1255,7 +1251,7 @@ class SubnetPrefixIterator(object):
                 if self.__next is None:
                     raise StopIteration
                 entry = self.__next
-                entry_first = long(entry.first.bitstring, 16)
+                entry_first = int(entry.first.bitstring, 16)
                 if self.last <= entry_first:
                     raise StopIteration
                 self.__next = entry.next_network

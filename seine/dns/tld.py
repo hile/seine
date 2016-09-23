@@ -80,9 +80,7 @@ class TLDCache(list):
                 if not os.path.isdir(fdir):
                     try:
                         os.makedirs(os.path.dirname(f))
-                    except IOError, (ecode, emsg):
-                        continue
-                    except OSError, (ecode, emsg):
+                    except (IOError, OSError):
                         continue
 
                 if not os.path.isfile(f):
@@ -91,9 +89,7 @@ class TLDCache(list):
                         os.unlink(f)
                         self.path = f
                         break
-                    except IOError, (ecode, emsg):
-                        continue
-                    except OSError, (ecode, emsg):
+                    except (IOError, OSError):
                         continue
 
         self.sort()
@@ -134,11 +130,11 @@ class TLDCache(list):
                     continue
                 self.append(TLD(l.lower()))
 
-        except IOError, (ecode, emsg):
-            raise TLDCacheError('Error loading cache: %s' % emsg)
+        except IOError as e:
+            raise TLDCacheError('Error loading cache: %s' % e)
 
-        except OSError, (ecode, emsg):
-            raise TLDCacheError('Error loading cache: %s' % emsg)
+        except OSError as e:
+            raise TLDCacheError('Error loading cache: %s' % e)
 
     def update(self):
         """Update cache
@@ -161,8 +157,8 @@ class TLDCache(list):
         if not os.path.isdir(cache_dir):
             try:
                 os.mkdir(cache_dir)
-            except OSError, (ecode, emsg):
-                raise DNSCacheError('Error creating %s: %s' % (cache_dir, emsg))
+            except OSError as e:
+                raise DNSCacheError('Error creating %s: %s' % (cache_dir, e))
 
         try:
             req = HTTPRequest()
@@ -171,11 +167,11 @@ class TLDCache(list):
             fd.write(data)
             fd.close()
 
-        except IOError, emsg:
-            raise DNSCacheError('Error updating %s: %s' % (self.path, emsg))
+        except IOError as e:
+            raise DNSCacheError('Error updating %s: %s' % (self.path, e))
 
-        except OSError, (ecode, emsg):
-            raise DNSCacheError('Error updating %s: %s' % (self.path, emsg))
+        except OSError as e:
+            raise DNSCacheError('Error updating %s: %s' % (self.path, e))
 
         self.load()
 

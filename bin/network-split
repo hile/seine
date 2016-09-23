@@ -21,7 +21,7 @@ args = script.parse_args()
 
 try:
     network = SubnetPrefixIterator(args.address,args.bitmask)
-except ValueError,e:
+except ValueError as e:
     script.exit(1,e)
 
 for splitnet in network:

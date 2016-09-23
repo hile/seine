@@ -19,8 +19,8 @@ script.add_argument('--update-indexes',action='store_true',help='Update device i
 script.add_argument('interfaces',nargs='*',help='Interface names to query')
 try:
     args = script.parse_args()
-except ScriptError,emsg:
-    script.exit(1,emsg)
+except ScriptError as e:
+    script.exit(1,e)
 sni = SNMPNetworkInterfaces(**script.client_kwargs)
 names = sni.interface_names()
 

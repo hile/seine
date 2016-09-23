@@ -47,14 +47,14 @@ class JSONCommand(NetstatCommand):
 
         try:
             data = json.dumps(self.netstat.as_dict(), indent=2)
-        except ValueError, emsg:
-            self.exit(1, 'Error parsing JSON data: %s' % emsg)
+        except ValueError as e:
+            self.exit(1, 'Error parsing JSON data: %s' % e)
 
         if args.output_file:
             try:
                 open(args.output_file, 'wb').write('%s\n' % data)
-            except IOError, (ecode, emsg):
-                self.exit(1, 'Error writing to %s: %s' % (args.output_file, emsg))
+            except IOError as e:
+                self.exit(1, 'Error writing to %s: %s' % (args.output_file, e))
         else:
             self.message(data)
 

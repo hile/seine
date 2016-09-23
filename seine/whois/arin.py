@@ -86,7 +86,7 @@ class ARINReverseIP(list):
             return None
         try:
             return dateparser(data['$'])
-        except ValueError, KeyError:
+        except (ValueError, KeyError):
             raise WhoisError('Error parsing date from %s' % data)
 
     def __parse_number_entry(self, data):
@@ -124,7 +124,7 @@ class ARINReverseIP(list):
             return None
         try:
             return self.address_format(data['$'])
-        except ValueError, KeyError:
+        except (ValueError, KeyError):
             raise WhoisError('Error parsing address from %s' % data)
 
     @property
@@ -219,7 +219,7 @@ def ARINReverseIPQuery(address, proxies={}):
 
     try:
         data = json.loads(res.content)
-    except ValueError, emsg:
+    except ValueError:
         raise WhoisError('Error parsing response: %s' % res.content)
 
     if 'net' not in data:

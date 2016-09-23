@@ -280,9 +280,9 @@ class BSDNetworkInterfaces(NetworkInterfaceList):
         self.__delslice__(0, len(self))
 
         try:
-            output = check_output(['/sbin/ifconfig'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting interfaces: %s' % emsg)
+            output = check_output(['/sbin/ifconfig']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting interfaces: %s' % e)
 
         interface = None
         for l in [l for l in output.split('\n') if l.strip() != '']:
@@ -349,9 +349,9 @@ class BSDRoutes(RoutingTable):
         self.ipv6 = []
 
         try:
-            output = check_output([NETSTAT, '-rn', '-f', 'inet'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting IPv4 routes: %s' % emsg)
+            output = check_output([NETSTAT, '-rn', '-f', 'inet']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting IPv4 routes: %s' % e)
 
         interface = None
         for l in [l for l in output.split('\n') if l.strip() != '']:
@@ -368,9 +368,9 @@ class BSDRoutes(RoutingTable):
             self.ipv4.append(IPv4RouteEntry(self, l))
 
         try:
-            output = check_output([NETSTAT, '-rn', '-f', 'inet6'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting IPv6 routes: %s' % emsg)
+            output = check_output([NETSTAT, '-rn', '-f', 'inet6']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting IPv6 routes: %s' % e)
 
         interface = None
         for l in [l for l in output.split('\n') if l.strip() != '']:
@@ -398,9 +398,9 @@ class BSDARP(ARPTable):
         self.__delslice__(0, len(self))
 
         try:
-            output = check_output(['/usr/sbin/arp', '-an'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting ARP table: %s' % emsg)
+            output = check_output(['/usr/sbin/arp', '-an']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting ARP table: %s' % e)
 
         for l in [l for l in output.split('\n') if l.strip() != '']:
             if l.strip() == '':

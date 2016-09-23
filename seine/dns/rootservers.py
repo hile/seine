@@ -108,16 +108,16 @@ class RootServers(dict):
         try:
             open(self.path, 'w').write(data)
 
-        except IOError, (ecode, emsg):
-            raise DNSError('Error writing %s: %s' % (self.path, emsg))
-        except IOError, (ecode, emsg):
-            raise DNSError('Error writing %s: %s' % (self.path, emsg))
+        except IOError as e:
+            raise DNSError('Error writing %s: %s' % (self.path, e))
+        except IOError as e:
+            raise DNSError('Error writing %s: %s' % (self.path, e))
 
         try:
             self.parse()
 
-        except DNSError, emsg:
-            raise DNSError('Update of root server list from %s failed: %s' % (self.path, emsg))
+        except DNSError as e:
+            raise DNSError('Update of root server list from %s failed: %s' % (self.path, e))
 
     def parse(self):
         """

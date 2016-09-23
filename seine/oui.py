@@ -19,7 +19,7 @@ class OUIPrefix(object):
         self.address = []
 
     def __repr__(self):
-        return '%s %s' % (self.company, ', '.join(self.address))
+        return '{0} {1}'.format(self.company, ', '.join(self.address))
 
 
 class OUIPrefixLookup(dict):

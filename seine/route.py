@@ -14,9 +14,9 @@ class IPRoutingTable(object):
         self.ipv6 = []
 
         try:
-            output = check_output(['netstat', '-rn'])
-        except CalledProcessError, emsg:
-            raise RoutingTableError('Error checking netstat -rn output: %s' % emsg)
+            output = check_output(['netstat', '-rn']).decode('utf-8')
+        except CalledProcessError as e:
+            raise RoutingTableError('Error checking netstat -rn output: {0}'.format(e))
 
         for l in [x.strip() for x in output.split('\n') if x!='']:
 
@@ -39,8 +39,8 @@ class IPRoutingTable(object):
                     try:
                         gateway = EthernetMACAddress(fields[1])
                         gateway_type = 'host'
-                    except ValueError, emsg:
-                        raise RoutingTableError('Error parsing gateway %s: %s' % (fields[1], emsg))
+                    except ValueError as e:
+                        raise RoutingTableError('Error parsing gateway {0}: {1}'.format(fields[1], e))
 
             if isinstance(address, IPv4Address) or isinstance(gateway, IPv4Address):
                 if isinstance(address, basestring) and address=='default':
@@ -139,20 +139,24 @@ class Route(object):
 
     @property
     def gateway_mac_address(self):
-        if self.gateway_type not in ['route', 'host']:
+        if self.gateway_type not in ( 'route', 'host', ):
             return None
+
         try:
-            output = check_output(['arp', '-an'])
-        except CalledProcessError, emsg:
-            raise RoutingTableError('Error checking arp -rn output: %s' % emsg)
+            output = check_output(['arp', '-an']).decode('utf-8')
+        except CalledProcessError as e:
+            raise RoutingTableError('Error checking arp -rn output: {0}'.format(emsg))
+
         for l in output.split('\n'):
             try:
                 name, addr, at, mac, rest = l.split(None, 4)
                 addr = addr.strip('()')
-            except ValueError, emsg:
+            except ValueError:
                 continue
+
             if addr==self.gateway:
                 return EthernetMACAddress(mac)
+
         return None
 
 class IPv4Route(Route):

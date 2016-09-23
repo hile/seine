@@ -99,9 +99,9 @@ class LinuxNetworkInterface(NetworkInterface):
     def parse_vlan_options(self):
         self.name, self.vlan_device = self.name.split('@', 1)
         try:
-            output = check_output(['/sbin/ip', '-d', 'link', 'show', self.name])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting interfaces: %s' % emsg)
+            output = check_output(['/sbin/ip', '-d', 'link', 'show', self.name]).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting interfaces: %s' % e)
 
         for l in [l for l in output.split('\n')[1:] if l.strip() != '']:
             fields = l.split()
@@ -174,9 +174,9 @@ class LinuxNetworkInterfaces(NetworkInterfaceList):
         self.__delslice__(0, len(self))
 
         try:
-            output = check_output(['/sbin/ip', 'addr', 'show'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting interfaces: %s' % emsg)
+            output = check_output(['/sbin/ip', 'addr', 'show']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting interfaces: %s' % e)
 
         interface = None
         for l in [l for l in output.split('\n') if l.strip() != '']:
@@ -235,9 +235,9 @@ class LinuxRoutes(RoutingTable):
         self.ipv6 = []
 
         try:
-            output = check_output(['/bin/netstat', '-rn', '-4'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting IPv4 routes: %s' % emsg)
+            output = check_output(['/bin/netstat', '-rn', '-4']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting IPv4 routes: %s' % e)
 
         interface = None
         for l in [l for l in output.split('\n') if l.strip() != '']:
@@ -254,9 +254,9 @@ class LinuxRoutes(RoutingTable):
             self.ipv4.append(IPv4RouteEntry(self, l))
 
         try:
-            output = check_output(['/bin/netstat', '-rn', '-6'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting IPv6 routes: %s' % emsg)
+            output = check_output(['/bin/netstat', '-rn', '-6']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting IPv6 routes: %s' % e)
 
         interface = None
         for l in [l for l in output.split('\n') if l.strip() != '']:
@@ -284,9 +284,9 @@ class LinuxARP(ARPTable):
         self.__delslice__(0, len(self))
 
         try:
-            output = check_output(['/usr/sbin/arp', '-an'])
-        except CalledProcessError, emsg:
-            raise NetworkError('Error getting ARP table: %s' % emsg)
+            output = check_output(['/usr/sbin/arp', '-an']).decode('utf-8')
+        except CalledProcessError as e:
+            raise NetworkError('Error getting ARP table: %s' % e)
 
         for l in [l for l in output.split('\n') if l.strip() != '']:
             if l.strip() == '':

@@ -924,7 +924,14 @@ class Counter(object):
     def add_counter(self, name, value):
         try:
             config = self.counter_map[name]
-            counter = Counter(self.protocol, self, config['group'], config['name'], value, counter_map=config.get('counter_map', {}))
+            counter = Counter(
+                self.protocol,
+                self,
+                config['group'],
+                config['name'],
+                value,
+                counter_map=config.get('counter_map', {})
+            )
             self.counters.append(counter)
             return counter
 

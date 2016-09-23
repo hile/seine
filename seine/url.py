@@ -112,17 +112,17 @@ class HTTPRequest(object):
                 retries+=1
                 try:
                     req = opener.open(urllib2.Request(url, data, h))
-                except urllib2.URLError, e:
+                except urllib2.URLError as e:
                     raise HTTPRequestError(str(e))
                 try:
                     code = 200
                     data = req.read()
                     headers = req.info()
-                except urllib2.HTTPError, e:
+                except urllib2.HTTPError as e:
                     code = e.code
                     data = e.read()
                     headers = {}
-                except urllib2.URLError, e:
+                except urllib2.URLError as e:
                     msg = e.reason[1]
                     if self.proxy_url:
                         msg += ' (using proxy %s)' % self.proxy_url

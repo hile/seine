@@ -21,6 +21,6 @@ for address in args.addresses:
             for key, value in response.items():
                 print '%-12s %s' % (key, value)
 
-    except WhoisError, emsg:
-        script.message('Error looking up %s: %s' % (address, emsg))
+    except WhoisError as e:
+        script.message('Error looking up %s: %s' % (address, e))
 

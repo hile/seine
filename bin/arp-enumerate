@@ -19,7 +19,7 @@ script.add_argument('interfaces',nargs='*',help='Interfaces to list ARP entries 
 args = script.parse_args()
 
 try:
-    stdout = check_output(['arp','-an'])
+    stdout = check_output(['arp','-an']).decode('utf-8')
 except CalledProcessError:
     script.exit(1,'Error executing arp -an')
 
@@ -31,8 +31,8 @@ for l in [l.strip() for l in stdout.split('\n')]:
         address = IPv4Address(m.groupdict()['ip'])
         mac = EthernetMACAddress(m.groupdict()['mac'])
         interface = m.groupdict()['interface']
-    except ValueError,emsg:
-        script.error(emsg)
+    except ValueError as e:
+        script.error(e)
         sys.exit(1)
     arptable[address] = {'address': address.ipaddress, 'ethernet': mac, 'interface': interface }
 

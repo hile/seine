@@ -29,14 +29,14 @@ class Interfaces(object):
                 Interfaces.__loader = BSDNetworkInterfaces()
 
             else:
-                raise ValueError('Interfaces loader for OS not available: %s' % sys.platform)
+                raise ValueError('Interfaces loader for OS not available: {0}'.format(sys.platform))
 
         self.__dict__['_Interfaces__loader'] = Interfaces.__loader
         self.__loader.update()
         self.__loader.sort()
 
     def __repr__(self):
-        return '%s' % [x.name for x in self.__loader]
+        return '{0}'.format([x.name for x in self.__loader])
 
     def __getattr__(self, attr):
         return getattr(self.__loader, attr)
@@ -65,7 +65,7 @@ class ARP(object):
                 ARP.__loader = BSDARP()
 
             else:
-                raise ValueError('ARP loader for OS not available: %s' % sys.platform)
+                raise ValueError('ARP loader for OS not available: {0}'.format(sys.platform))
 
         self.__dict__['_ARP__loader'] = ARP.__loader
         self.__loader.update()
@@ -86,10 +86,10 @@ class ARP(object):
     def match(self, value):
         matches = []
         for entry in self:
-            if entry.ethernet is not None and fnmatch.fnmatch('%s' % entry.ethernet, value):
+            if entry.ethernet is not None and fnmatch.fnmatch('{0}'.format(entry.ethernet), value):
                 matches.append(entry)
 
-            if fnmatch.fnmatch('%s' % entry.address, value):
+            if fnmatch.fnmatch('{0}'.format(entry.address), value):
                 matches.append(entry)
 
         return matches
@@ -112,7 +112,7 @@ class Routes(object):
                 Routes.__loader = BSDRoutes()
 
             else:
-                raise ValueError('Routes loader for OS not available: %s' % sys.platform)
+                raise ValueError('Routes loader for OS not available: {0}'.format(sys.platform))
 
         self.__dict__['_Routes__loader'] = Routes.__loader
         self.__loader.update()

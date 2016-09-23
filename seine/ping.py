@@ -49,17 +49,18 @@ class PingSocket(object):
         if source is not None:
             try:
                 self.socket.bind((source, socket.IPPROTO_ICMP))
-            except socket.error, (ecode, emsg):
-                raise PingError('Error binding to source address %s: %s' % (source, emsg))
+            except socket.error as e:
+                raise PingError('Error binding to source address {0}: {1}'.format(source, e))
 
     def sendto(self, packet):
         try:
             self.socket.sendto(packet, self.target)
-        except socket.error, (ecode, emsg):
-            raise PingError(emsg)
+        except socket.error as e:
+            raise PingError(e)
 
     def recvfrom(self, maxbytes):
         return self.socket.recvfrom(maxbytes)
+
 
 class Pinger(object):
     """
@@ -104,13 +105,13 @@ class Pinger(object):
         try:
             sent = self.times[pkt.get_seq()]
         except KeyError:
-            print 'Invalid packet sequence number: %s' % pkt.get_seq()
+            print('Invalid packet sequence number: {0}'.format(pkt.get_seq()))
             return
 
         if when-sent <= timeout:
             self.deltas.append(float(when-sent)*1000)
         else:
-            print '%s timed out' % sent
+            print('{0} timed out'.format(sent))
             self.timed_out.append(sent)
 
     def ping(self, packets=1):
@@ -125,19 +126,19 @@ class Pinger(object):
             if packets < 0 or packets > MAX_PACKETS:
                 raise ValueError
         except ValueError:
-            raise PingError('Invalid number of packets: %s' % packets)
+            raise PingError('Invalid number of packets: {0}'.format(packets))
 
-        interval = float(self.interval)/1000
-        timeout = float(self.timeout)/1000
+        interval = float(self.interval) / 1000
+        timeout = float(self.timeout) / 1000
         last_sent = 0
         while 1:
             now = time.time()
-            if self.sent < packets and (last_sent+interval)<now:
+            if self.sent < packets and (last_sent+interval) < now:
                 self.__send_packet()
                 last_sent = now
 
             if len(self.times) == packets:
-                if filter(lambda t: t+timeout>now, self.times.values())==[]:
+                if filter(lambda t: t+timeout>now, self.times.values()) == []:
                     break
 
             (rd, wt, er) = select.select([self.socket.socket], [], [], timeout)
@@ -153,11 +154,11 @@ class Pinger(object):
             try:
                 reply = icmp.disassemble(reply_address.data)
             except ValueError:
-                print 'Invalid ICMP reply packet received'
+                print('Invalid ICMP reply packet received')
                 continue
 
             if reply.get_id() != self.pid:
-                print 'PID in response does not match'
+                print('PID in response does not match')
                 continue
             self.__recv_packet(reply, arrival, timeout)
 

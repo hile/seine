@@ -146,8 +146,8 @@ class DelegateServer(object):
     def soa(self):
         try:
             return SOA(self.address, self.domain)
-        except ValueError, emsg:
-            raise DNSError('Error retrieving SOA for %s from %s: %S' % (self.address, self.domain, emsg))
+        except ValueError as e:
+            raise DNSError('Error retrieving SOA for %s from %s: %S' % (self.address, self.domain, e))
 
     @property
     def nameservers(self):

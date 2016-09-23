@@ -47,7 +47,7 @@ class SNMPAuth(object):
     """
     def __init__(self, version):
         if version not in SNMP_VERSIONS:
-            raise SNMPError('Invalid SNMP version: %s' % version)
+            raise SNMPError('Invalid SNMP version: {0}'.format(version))
         self.version = version
         self.auth = None
 
@@ -64,7 +64,7 @@ class SNMPv1Auth(SNMPAuth):
         self.auth = CommunityData(self.securityname, self.community, 0)
 
     def __repr__(self):
-        return '%s SNMP v1 community %s' % (self.securityname, self.community)
+        return '{0} SNMP v1 community {1}'.format(self.securityname, self.community)
 
 class SNMPv2cAuth(SNMPAuth):
     """SNMP v2c community authentication
@@ -79,7 +79,10 @@ class SNMPv2cAuth(SNMPAuth):
         self.auth = CommunityData(self.securityname, self.community)
 
     def __repr__(self):
-        return '%s SNMP v2c community %s' % (self.securityname, self.community)
+        return '{0} SNMP v2c community {1}'.format(self.securityname, self.community)
+"""
+SNMP client
+"""
 
 class SNMPv3Auth(SNMPAuth):
     """SNMP v3 community authentication
@@ -92,7 +95,8 @@ class SNMPv3Auth(SNMPAuth):
 
     """
     def __init__(self, username, authPass, privPass=None,
-                 authProtocol=DEFAULT_V3_AUTH_PROTOCOL, privProtocol=DEFAULT_V3_PRIV_PROTOCOL):
+                 authProtocol=DEFAULT_V3_AUTH_PROTOCOL,
+                 privProtocol=DEFAULT_V3_PRIV_PROTOCOL):
 
         SNMPAuth.__init__(self, '3')
         self.username = username
@@ -102,14 +106,16 @@ class SNMPv3Auth(SNMPAuth):
         self.auth_name = authProtocol
         self.priv_name  = privProtocol
 
-        self.auth = UsmUserData( self.username,
-            authKey=self.authPass, privKey=privPass,
+        self.auth = UsmUserData(
+            self.username,
+            authKey=self.authPass,
+            privKey=privPass,
             authProtocol=self.__lookup_auth_protocol(authProtocol),
             privProtocol=self.__lookup_priv_protocol(privProtocol),
         )
 
     def __repr__(self):
-        return 'SNMP v3 auth: user %s auth %s encryption %s' % (
+        return 'SNMP v3 auth: user {0} auth {1} encryption {2}'.format(
             self.username, self.auth_name, self.priv_name
         )
 
@@ -120,7 +126,7 @@ class SNMPv3Auth(SNMPAuth):
         try:
             return V3_AUTH_PROTOCOLS[protocol.upper()]
         except KeyError:
-            raise SNMPError('Unknown SNMP authentication protocol: %s' % protocol)
+            raise SNMPError('Unknown SNMP authentication protocol: {0}'.format(protocol))
         except AttributeError:
             raise SNMPError('Protocol value must be a string')
 
@@ -131,7 +137,7 @@ class SNMPv3Auth(SNMPAuth):
         try:
             return V3_PRIV_PROTOCOLS[protocol.upper()]
         except KeyError:
-            raise SNMPError('Unknown SNMP privacy protocol: %s' % protocol)
+            raise SNMPError('Unknown SNMP privacy protocol: {0}'.format(protocol))
         except AttributeError:
             raise SNMPError('Protocol value must be a string')
 
@@ -167,21 +173,21 @@ class SNMPIndexCache(dict):
             return
         c = ConfigObj()
 
-        for k, opts in self.items():
+        for key, opts in self.items():
             if len(opts) == 0:
                 continue
-            if not c.has_key(k):
-                c[k] = {}
+            if key not in  c:
+                c[key] = {}
             for i, data in opts.items():
                 i = str(i)
-                c[k][i] = data
+                c[key][i] = data
 
         try:
             c.write(open(self.path, 'w'))
-        except OSError, (ecode,emsg):
-            raise SNMPError('Error writing index cache %s: %s' (self.path, emsg))
-        except IOError, (ecode, emsg):
-            raise SNMPError('Error writing index cache %s: %s' (self.path, emsg))
+        except OSError as e:
+            raise SNMPError('Error writing index cache {0}: {1}'.format(self.path, e))
+        except IOError as e:
+            raise SNMPError('Error writing index cache {0}: {1}'.format(self.path, e))
 
 class SNMPClient(object):
     """
@@ -206,10 +212,10 @@ class SNMPClient(object):
                 timeout=self.timeout,
                 retries=self.retries
             )
-        except socket.gaierror, emsg:
-            raise SNMPError(emsg)
-        except PyAsn1Error, emsg:
-            raise SNMPError("ASN1 parsing error: %s" % emsg)
+        except socket.gaierror as e:
+            raise SNMPError(e)
+        except PyAsn1Error as e:
+            raise SNMPError("ASN1 parsing error: {0}".format(e))
 
         self.oid_map = oid_map
 
@@ -217,15 +223,19 @@ class SNMPClient(object):
         self.indexes = {}
         try:
             for (index, details) in self.index_cache[self.address].items():
-                if details.has_key('index'):
+                if 'index' in details:
                     details['index'] = int(details['index'])
                 self.indexes[int(index)] = details
 
-        except KeyError, emsg:
+        except KeyError:
             pass
 
     def __repr__(self):
-        return 'SNMP connection %s:%s (%s)' % (self.address, self.port, self.auth_client)
+        return 'SNMP connection {0}:{1} ({2})'.format(
+            self.address,
+            self.port,
+            self.auth_client
+        )
 
     def __getattr__(self, attr):
         if attr in self.oid_map.keys():
@@ -235,9 +245,9 @@ class SNMPClient(object):
             try:
                 return [config['decode'](k, v) for k, v in self.walk(oid).items()]
             except AttributeError:
-                raise SNMPError('Invalid OID map dictionary for %s' % k)
+                raise SNMPError('Invalid OID map dictionary for {0}'.format(k))
 
-        raise AttributeError('No such SNMPClient attribute: %s' % attr)
+        raise AttributeError('No such SNMPClient attribute: {0}'.format(attr))
 
     def update_indexes(self):
         raise NotImplementedError('Implement update_indexes in child class')
@@ -253,8 +263,9 @@ class SNMPClient(object):
                 tuple(map(lambda x:int(x), oid.lstrip('.').split('.'))),
                 snmp_value
             ])
-        except ValueError, emsg:
-            raise SNMPError("Invalid OID: %s" % emsg)
+        except ValueError as e:
+            raise SNMPError('Invalid OID {0}: {1}'.format(oid, e))
+
         try:
             (e, status, index, varBinds) = CommandGenerator().setCmd(
                 self.auth_client.auth,
@@ -265,12 +276,12 @@ class SNMPClient(object):
             if status != 0:
                 raise SNMPError('Error setting SNMP value')
 
-        except CarrierError, emsg:
-            raise SNMPError(str(emsg))
-        except socket.gaierror, emsg:
-            raise SNMPError(emsg)
-        except PyAsn1Error, emsg:
-            raise SNMPError("ASN1 parsing error: %s" % emsg)
+        except CarrierError as e:
+            raise SNMPError(str(e))
+        except socket.gaierror as e:
+            raise SNMPError(e)
+        except PyAsn1Error as e:
+            raise SNMPError("ASN1 parsing error: {0}".format(e))
 
     def get(self, oid):
         """
@@ -278,8 +289,8 @@ class SNMPClient(object):
         """
         try:
             oid = tuple(map(lambda x: int(x),  oid.lstrip('.').split('.')))
-        except ValueError, emsg:
-            raise SNMPError("Invalid OID: %s" % emsg)
+        except ValueError as e:
+            raise SNMPError('Invalid OID: {0}'.format(e))
 
         try:
             (eind, status, index, varBinds) = CommandGenerator().getCmd(
@@ -288,18 +299,18 @@ class SNMPClient(object):
                 oid
             )
 
-        except CarrierError, emsg:
-            raise SNMPError(str(emsg))
-        except socket.gaierror, emsg:
-            raise SNMPError(emsg)
-        except PyAsn1Error, emsg:
-            raise SNMPError("ASN1 parsing error: %s" % emsg)
+        except CarrierError as e:
+            raise SNMPError(str(e))
+        except socket.gaierror as e:
+            raise SNMPError(e)
+        except PyAsn1Error as e:
+            raise SNMPError('ASN1 parsing error: {0}'.format(e))
 
         try:
             oid = varBinds[0][0]
             value = varBinds[0][1]
         except IndexError:
-            raise SNMPError("No results available")
+            raise SNMPError('No results available')
 
         return (oid, value)
 
@@ -312,8 +323,8 @@ class SNMPClient(object):
         """
         try:
             oid = tuple(map(lambda x:int(x), oid.lstrip('.').split('.')))
-        except ValueError, emsg:
-            raise SNMPError("Invalid OID: %s" % emsg)
+        except ValueError as e:
+            raise SNMPError("Invalid OID: {0}: {1}".format(oid, e))
         try:
             (eind, status, index, varBinds) = CommandGenerator().nextCmd(
                 self.auth_client.auth,
@@ -321,12 +332,12 @@ class SNMPClient(object):
                 oid
             )
 
-        except CarrierError, emsg:
-            raise SNMPError(str(emsg))
-        except socket.gaierror, emsg:
-            raise SNMPError(emsg)
-        except PyAsn1Error, emsg:
-            raise SNMPError("ASN1 parsing error: %s" % emsg)
+        except CarrierError as e:
+            raise SNMPError(str(e))
+        except socket.gaierror as e:
+            raise SNMPError(e)
+        except PyAsn1Error as e:
+            raise SNMPError("ASN1 parsing error: {0}".format(e))
 
         return dict(('.'.join(str(x) for x in v[0][0]), v[0][1]) for v in varBinds)
 
@@ -343,7 +354,7 @@ class SNMPClient(object):
             return '.'.join(str(i) for i in oid)
 
         except ValueError:
-            raise SNMPError('Invalid OID: %s' % oid)
+            raise SNMPError('Invalid OID: {0}'.format(oid))
 
     def tree_indexes(self, oid):
         """Return OIDs mathcing prefix
@@ -358,7 +369,7 @@ class SNMPClient(object):
                 lambda x, y: cmp_oid(x, y)
             ))
         except KeyError:
-            raise SNMPError('Tree not loaded: %s' % oid)
+            raise SNMPError('Tree not loaded: {0}'.format(oid))
 
     def tree(self,oid, refetch=False, indexed=False):
         """Walk and store tree to self.trees
@@ -368,16 +379,16 @@ class SNMPClient(object):
 
         """
         tree_id = self.tree_key(oid)
-        if not refetch and self.trees.has_key(tree_id):
+        if not refetch and tree_id in self.trees:
             tree = self.trees[tree_id]
         else:
             try:
                 tree = self.walk(oid)
                 self.trees[tree_id] = tree
-            except CarrierError, emsg:
-                raise SNMPError(str(emsg))
-            except SNMPError, emsg:
-                raise SNMPError(str(emsg))
+            except CarrierError as e:
+                raise SNMPError(str(e))
+            except SNMPError as e:
+                raise SNMPError(str(e))
 
         if indexed is True:
             keys = sorted(tree.keys(), lambda x, y: cmp_oid(x, y))
@@ -403,9 +414,9 @@ class SNMPClient(object):
         """
         oids = dict([(self.tree_key(k), oid_config[k]) for k in oid_config.keys()])
 
-        missing = filter(lambda k: not self.trees.has_key(k), oids.keys())
+        missing = filter(lambda k: k not in self.trees, oids.keys())
         if len(missing)>0:
-            raise SNMPError('Trees for OIDs not fetched: %s' % ' '.join(missing) )
+            raise SNMPError('Trees for OIDs not fetched: {0}'.format(' '.join(missing)) )
 
         indexes = [self.tree_indexes(oid) for oid in oids.keys()]
         results = dict((int(i), {}) for i in indexes[0])
@@ -414,11 +425,11 @@ class SNMPClient(object):
                 try:
                     k = filter(lambda k: k.split('.')[-1] == i, self.trees[oid].keys())[0]
                 except IndexError:
-                    raise SNMPError('Error mapping OID tree %s' % oid)
+                    raise SNMPError('Error mapping OID tree {0}'.format(oid))
 
                 v = self.trees[oid][k]
-                if results[int(i)].has_key(oid):
-                    raise SNMPError('Duplicate data for %s' % oid)
+                if oid in results[int(i)]:
+                    raise SNMPError('Duplicate data for {0}'.format(oid))
 
                 try:
                     results[int(i)][oid] = oids[oid](v)

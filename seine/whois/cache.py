@@ -68,11 +68,11 @@ class IPv4WhoisServer(WhoisServer):
         while True:
             try:
                 self.socket.connect((self.address, WHOIS_PORT))
-            except socket.error, (ecode, emsg):
-                if ecode in [errno.EINPROGRESS, errno.EALREADY]:
+            except socket.error as e:
+                if ecode in [e[0].EINPROGRESS, e[0].EALREADY]:
                     continue
                 else:
-                    raise WhoisError('Error connecting to %s: %s' % (self.address, emsg) )
+                    raise WhoisError('Error connecting to %s: %s' % (self.address, e[1]) )
             break
 
         ret = select.select([self.socket], [self.socket], [], 5)
@@ -105,8 +105,8 @@ class IPv4WhoisServer(WhoisServer):
             except socket.timeout:
                 self.close()
                 raise WhoisError('Request timeout to %s' % self.address)
-            except socket.error, (ecode, emsg):
-                if ecode in [errno.EINPROGRESS, errno.EALREADY]:
+            except socket.error as e:
+                if ecode in [e[0].EINPROGRESS, e[0].EALREADY]:
                     continue
                 else:
                     self.close()
@@ -183,9 +183,9 @@ class WhoisServerCache(dict):
                 if not os.path.isdir(fdir):
                     try:
                         os.makedirs(os.path.dirname(f))
-                    except IOError, (ecode, emsg):
+                    except IOError:
                         continue
-                    except OSError, (ecode, emsg):
+                    except OSError:
                         continue
 
                 if not os.path.isfile(f):
@@ -194,9 +194,9 @@ class WhoisServerCache(dict):
                         os.unlink(f)
                         self.cache_path = f
                         break
-                    except IOError, (ecode, emsg):
+                    except IOError:
                         continue
-                    except OSError, (ecode, emsg):
+                    except OSError:
                         continue
 
         if self.cache_path is None:
@@ -206,8 +206,8 @@ class WhoisServerCache(dict):
             self.tlds = TLDCache(tld_cache_path)
             if not self.tlds.is_downloaded:
                 self.tlds.download()
-        except DNSCacheError, emsg:
-            raise WhoisEror(emsg)
+        except DNSCacheError as e:
+            raise WhoisEror(e)
 
         if os.path.isfile(self.cache_path):
             self.load()
@@ -219,10 +219,10 @@ class WhoisServerCache(dict):
         try:
             cache = ConfigParser.ConfigParser()
             cache.read(self.cache_path)
-        except OSError, (ecode, emsg):
-            raise WhoisError(emsg)
-        except IOError, (ecode, emsg):
-            raise WhoisError(emsg)
+        except OSError as e:
+            raise WhoisError(e)
+        except IOError as e:
+            raise WhoisError(e)
 
         for tld in cache.sections():
             try:
@@ -234,7 +234,7 @@ class WhoisServerCache(dict):
                     ipv6_addresses.extend(cache.get(tld, 'ipv6_addresses').split(','))
                 entry = TLDWhoisServerList(tld, ipv4_addresses, ipv6_addresses)
                 self[tld] = entry
-            except ConfigParser.NoOptionError, emsg:
+            except ConfigParser.NoOptionError:
                 logger.debug('Invalid cache entry for %s' % tld)
 
     def save(self):
@@ -246,10 +246,10 @@ class WhoisServerCache(dict):
         if not os.path.isdir(cache_dir):
             try:
                 os.makedirs(cache_dir)
-            except IOError, (ecode, emsg):
-                raise WhoisError('Error creating cache directory %s: %s' % (cache_dir, emsg))
-            except OSError, (ecode, emsg):
-                raise WhoisError('Error creating cache directory %s: %s' % (cache_dir, emsg))
+            except IOError as e:
+                raise WhoisError('Error creating cache directory %s: %s' % (cache_dir, e))
+            except OSError as e:
+                raise WhoisError('Error creating cache directory %s: %s' % (cache_dir, e))
 
         try:
             cache = ConfigParser.ConfigParser()
@@ -259,10 +259,10 @@ class WhoisServerCache(dict):
                 cache.set(entry.tld, 'ipv6_addresses', ','.join(x.address for x in entry.ipv6_addresses))
             cache.write(open(self.cache_path, 'w'))
 
-        except OSError, (ecode, emsg):
-            raise WhoisError('Error updating cache %s: %s' % (self.cache_path, emsg))
-        except IOError, (ecode, emsg):
-            raise WhoisError('Error updating cache %s: %s' % (self.cache_path, emsg))
+        except OSError as e:
+            raise WhoisError('Error updating cache %s: %s' % (self.cache_path, e))
+        except IOError as e:
+            raise WhoisError('Error updating cache %s: %s' % (self.cache_path, e))
 
     def get(self, tld, timeout=WHOIS_SERVER_TIMEOUT):
         try:
@@ -284,10 +284,10 @@ class WhoisServerCache(dict):
 
             except socket.timeout:
                 raise WhoisError('Timeout resolving whois server %s' % name)
-            except socket.gaierror, (ecode, emsg):
-                raise WhoisError(emsg)
-            except ValueError, emsg:
-                raise WhoisError(emsg)
+            except socket.gaierror as e:
+                raise WhoisError(e)
+            except ValueError as e:
+                raise WhoisError(e)
 
         return self[tld]
 

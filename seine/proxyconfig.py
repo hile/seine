@@ -28,18 +28,19 @@ class ProxyAutoConfig(object):
 
     def __init__(self, pac_url=None, timeout=DEFAULT_QUERY_TIMEOUT):
         if pac_url is None:
+
             default_timeout = socket.getdefaulttimeout()
             socket.setdefaulttimeout(timeout)
             try:
                 wpad_domain = '.'.join(socket.getfqdn('wpad').split('.')[1:])
-            except socket.GAIError, emsg:
-                raise ProxyConfigError('Error querying wpad hostname: %s' % emsg)
+            except socket.GAIError as e:
+                raise ProxyConfigError('Error querying wpad hostname: {0}'.format(e))
             socket.setdefaulttimeout(default_timeout)
 
             if wpad_domain == '':
                 raise ProxyConfigError('No URL given and WPAD hostname not available')
             else:
-                pac_url = 'http://wpad.%s/wpad.dat' % wpad_domain
+                pac_url = 'http://wpad.{0}/wpad.dat'.format(wpad_domain)
 
         self.pac_url = pac_url
         self.data = None
@@ -55,14 +56,14 @@ class ProxyAutoConfig(object):
 
         res = requests.get(self.pac_url)
         if res.status_code != 200:
-            raise ProxyConfigError('Error retrieving PAC from %s' % self.pac_url)
+            raise ProxyConfigError('Error retrieving PAC from {0}'.format(self.pac_url))
 
         self.data = StringIO.StringIO()
         self.data.write(res.content)
         self.data.seek(0)
 
     def __repr__(self):
-        return 'PAC: %s' % self.pac_url
+        return 'PAC: {0}'.format(self.pac_url)
 
     def __str__(self):
         """PAC as string
@@ -97,7 +98,7 @@ class ProxyAutoConfig(object):
         try:
             protocol = url.split('://')[0]
         except ValueError:
-            raise ProxyConfigError('Invalid URL: %s' % url)
+            raise ProxyConfigError('Invalid URL: {0}'.format(url))
 
         try:
             pacparser.init()
@@ -105,7 +106,7 @@ class ProxyAutoConfig(object):
             proxies = pacparser.find_proxy(url)
             pacparser.cleanup()
         except:
-            raise ProxyConfigError('Error parsing PAC: %s' % self.pac_url)
+            raise ProxyConfigError('Error parsing PAC: {0}'.format(self.pac_url))
         data = {}
         for v in [x.strip() for x in proxies.split(';')]:
             if v == 'DIRECT':
@@ -125,7 +126,7 @@ class ProxyAutoConfig(object):
         try:
             protocol = url.split('://')[0]
         except ValueError:
-            raise ProxyConfigError('Invalid URL: %s' % url)
+            raise ProxyConfigError('Invalid URL: {0}'.format(url))
 
         proxies = self.find_proxies(url)
 

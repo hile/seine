@@ -64,7 +64,7 @@ def resolve_records(query, nameserver, rrtype='A', timeout=5):
 
     try:
         rrname = rrname_mapped(rrtype)
-    except ValueError, e:
+    except ValueError as e:
         raise ValueError(e)
 
     try:
@@ -82,8 +82,8 @@ def resolve_records(query, nameserver, rrtype='A', timeout=5):
             q=dns.message.make_query(query, rdtype),
             where=nameserver, timeout=timeout
         )
-    except socket.error, (ecode, emsg):
-        raise QueryError('Nameserver %s: %s' % (nameserver, emsg))
+    except socket.error as e:
+        raise QueryError('Nameserver %s: %s' % (nameserver, e))
     except dns.exception.Timeout:
         raise QueryError('Timeout resolving from %s' % nameserver)
 

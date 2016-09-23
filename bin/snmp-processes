@@ -22,6 +22,6 @@ values = sorted(processes.indexes.values(),lambda x,y: cmp(x['mem'],y['mem']))
 for v in filter(lambda v: v['mem']>0, values):
     try:
         script.message('%(mem)8s %(name)s %(args)s' % v)
-    except KeyError,emsg:
+    except KeyError:
         script.message('ERROR looking up "%s" from %s' % (emsg,v))
 

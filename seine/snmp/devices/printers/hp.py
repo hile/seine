@@ -205,16 +205,3 @@ class LaserjetSNMPControl(dict):
             raise ValueError('Invalid testpage type: %s' % pagetype)
         oid = HP_LASERJET_MIB_OID + '.4.2.1.1.5.2.0'
         return self.client.set(oid, pagetype)
-
-if __name__ == '__main__':
-    import sys
-
-    ljclient = LaserjetSNMPControl(
-        SNMPClient(sys.argv[1], SNMPv1Auth(community=sys.argv[2]))
-    )
-    #ljclient.client.logger.set_level('DEBUG')
-    #for k in sorted(HP_PRINTER_OID_MAP.keys()): print k, getattr(ljclient,k)
-
-    for color,details in ljclient.supply_level_details().items():
-        print '%12s %s %%' % (color,details['percent'])
-

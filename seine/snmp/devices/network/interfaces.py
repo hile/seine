@@ -13,158 +13,158 @@ from seine.snmp import SNMPError
 from seine.snmp.client import SNMPClient
 from seine.address import IPv4Address,EthernetMACAddress
 
-IF_STATUS_UP = 1 
+IF_STATUS_UP = 1
 IF_STATUS_DOWN = 2
 IF_STATUS_CODES = [ None, IF_STATUS_UP, IF_STATUS_DOWN ]
 
 INTERFACE_IPV4_OID_PREFIX = '.1.3.6.1.2.1.3.1.1.3'
 
 NETWORK_OIDS_MAP = {
-    'index': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.1', 
-        'decode': lambda oid,x: (oid,int(x)), 
+    'index': {
+        'oid': '.1.3.6.1.2.1.2.2.1.1',
+        'decode': lambda oid,x: (oid,int(x)),
     },
     'mtu': {
-        'oid': '.1.3.6.1.2.1.2.2.1.4', 
+        'oid': '.1.3.6.1.2.1.2.2.1.4',
         'decode': lambda oid,x: (oid,int(x)),
     },
     'speed': {
-        'oid': '.1.3.6.1.2.1.2.2.1.5', 
+        'oid': '.1.3.6.1.2.1.2.2.1.5',
         'decode': lambda oid,x: (oid,int(x)),
     },
     'phys_address': {
-        'oid': '.1.3.6.1.2.1.2.2.1.6', 
+        'oid': '.1.3.6.1.2.1.2.2.1.6',
         'decode': lambda oid,x: (oid,EthernetMACAddress(x)),
     },
-    'description': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.2', 
+    'description': {
+        'oid': '.1.3.6.1.2.1.2.2.1.2',
         'decode': lambda oid,x: (oid,str(x)),
     },
-    'oper_status': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.8', 
-        'decode': lambda oid,x: (oid,IF_STATUS_CODES[int(x)]), 
+    'oper_status': {
+        'oid': '.1.3.6.1.2.1.2.2.1.8',
+        'decode': lambda oid,x: (oid,IF_STATUS_CODES[int(x)]),
     },
-    'admin_status': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.7', 
-        'decode': lambda oid,x: (oid,IF_STATUS_CODES[int(x)]), 
+    'admin_status': {
+        'oid': '.1.3.6.1.2.1.2.2.1.7',
+        'decode': lambda oid,x: (oid,IF_STATUS_CODES[int(x)]),
     },
-    'in_octets': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.10', 
+    'in_octets': {
+        'oid': '.1.3.6.1.2.1.2.2.1.10',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_ucast_pkts': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.11', 
+    'in_ucast_pkts': {
+        'oid': '.1.3.6.1.2.1.2.2.1.11',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_non_ucast_pkts': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.12', 
+    'in_non_ucast_pkts': {
+        'oid': '.1.3.6.1.2.1.2.2.1.12',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_discards': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.13', 
+    'in_discards': {
+        'oid': '.1.3.6.1.2.1.2.2.1.13',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_errors': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.14', 
+    'in_errors': {
+        'oid': '.1.3.6.1.2.1.2.2.1.14',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_unknown_proto': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.15', 
+    'in_unknown_proto': {
+        'oid': '.1.3.6.1.2.1.2.2.1.15',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_octets': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.16', 
+    'out_octets': {
+        'oid': '.1.3.6.1.2.1.2.2.1.16',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_ucast_pkts': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.17', 
+    'out_ucast_pkts': {
+        'oid': '.1.3.6.1.2.1.2.2.1.17',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_non_ucast_pkts': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.18', 
+    'out_non_ucast_pkts': {
+        'oid': '.1.3.6.1.2.1.2.2.1.18',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_discards': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.19', 
+    'out_discards': {
+        'oid': '.1.3.6.1.2.1.2.2.1.19',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_errors': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.20', 
+    'out_errors': {
+        'oid': '.1.3.6.1.2.1.2.2.1.20',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_qlen': { 
-        'oid': '.1.3.6.1.2.1.2.2.1.21', 
+    'out_qlen': {
+        'oid': '.1.3.6.1.2.1.2.2.1.21',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'name': { 
+    'name': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.1',
         'decode': lambda oid,x: (oid,str(x)),
     },
-    'in_mcast_pkts': { 
+    'in_mcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.2',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_bcast_pkts': { 
+    'in_bcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.3',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_mcast_pkts': { 
+    'out_mcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.4',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_bcast_pkts': { 
+    'out_bcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.5',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_64bit_octets': { 
+    'in_64bit_octets': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.6',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_64bit_ucast_pkts': { 
+    'in_64bit_ucast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.7',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_64bit_mcast_pkts': { 
+    'in_64bit_mcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.8',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'in_64bit_bcast_pkts': { 
+    'in_64bit_bcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.9',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_64bit_octets': { 
+    'out_64bit_octets': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.10',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_64bit_ucast_pkts': { 
+    'out_64bit_ucast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.11',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_64bit_mcast_pkts': { 
+    'out_64bit_mcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.12',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'out_64bit_bcast_pkts': { 
+    'out_64bit_bcast_pkts': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.13',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'updown_trap_enable': { 
+    'updown_trap_enable': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.14',
         'decode': lambda oid,x: (oid,int(x)== 1 and True or False),
     },
-    'speed_fastlink': { 
+    'speed_fastlink': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.15',
         'decode': lambda oid,x: (oid,long(x)),
     },
-    'promiscuous': { 
+    'promiscuous': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.16',
         'decode': lambda oid,x: (oid,int(x)== 1 and True or False),
     },
-    'connector_present': { 
+    'connector_present': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.17',
         'decode': lambda oid,x: (oid,int(x)== 1 and True or False),
     },
-    'alias': { 
+    'alias': {
         'oid': '.1.3.6.1.2.1.31.1.1.1.18',
         'decode': lambda oid,x: (oid,str(x)),
     },
@@ -194,12 +194,11 @@ class SNMPNetworkInterfaces(SNMPClient):
         except ValueError:
             raise ValueError('Invalid ifindex')
         oid = '.'.join([NETWORK_OIDS_MAP['alias']['oid'],str(ifindex)])
-        print oid
         try:
             value = rfc1902.OctetString(value)
             self.set(oid,value)
-        except SNMPError,emsg:
-            raise ValueError('Error updating alias: %s' % emsg)
+        except SNMPError as e:
+            raise ValueError('Error updating alias: %s' % e)
 
     def interface_ipv4_addresses(self,ifindex):
         if_oid = '.'.join([INTERFACE_IPV4_OID_PREFIX,str(ifindex)])
@@ -209,7 +208,7 @@ class SNMPNetworkInterfaces(SNMPClient):
                 addresses.append(IPv4Address(value))
             except ValueError:
                 raise ValueError('Invalid IPv4 address from OID %s' % oid)
-        return addresses  
+        return addresses
 
     def interface_names(self):
         if self.indexes == {}:
@@ -263,8 +262,8 @@ class SNMPNetworkInterfaces(SNMPClient):
             for ifindex in ifindexes:
                 try:
                     details[ifindex] = self.interface_details(ifindex,fields)
-                except ValueError,emsg:
-                    raise ValueError(emsg)
+                except ValueError as e:
+                    raise ValueError(e)
         return details
 
     def interface_octet_counters(self,ifindexes=None):
@@ -289,7 +288,7 @@ class SNMPNetworkInterfaces(SNMPClient):
             self.update_indexes()
         fields = [
             'in_ucast_pkts','in_non_ucast_pkts',
-            'out_ucast_pkts','out_non_ucast_pkts' 
+            'out_ucast_pkts','out_non_ucast_pkts'
         ]
         if ifindexes is None:
             details = self.indexes()

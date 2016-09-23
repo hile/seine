@@ -17,7 +17,7 @@ setup(
     packages = find_packages(),
     scripts = glob.glob('bin/*'),
     install_requires = (
-        'systematic>=4.4.0',
+        'systematic>=4.5.0',
         'requests',
         'python-dateutil',
         'dnspython',

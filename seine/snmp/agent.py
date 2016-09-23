@@ -44,7 +44,7 @@ class OIDPrefix(object):
         self._next = None
 
     def __format_oid_string__(self, oid):
-        return '.%s' % '.'.join(str(x) for x in self.__format_oid__(oid))
+        return '.{0}'.format('.'.join(str(x) for x in self.__format_oid__(oid)))
 
     def __format_oid__(self, oid):
         """Format OID
@@ -58,7 +58,7 @@ class OIDPrefix(object):
             try:
                 oid = oid.strip('.').split('.')
             except ValueError:
-                raise ValueError('Invalid OID: %s' % oid)
+                raise ValueError('Invalid OID: {0}'.format(oid))
 
         return self.__validate_oid__(oid)
 
@@ -76,7 +76,7 @@ class OIDPrefix(object):
                     raise ValueError
 
         except ValueError:
-            raise ValueError('Invalid OID: %s' % oid)
+            raise ValueError('Invalid OID: {0}'.format(oid))
 
         return oid
 
@@ -86,7 +86,7 @@ class OIDPrefix(object):
         Log error and return None
 
         """
-        self.log.debug('%s' % message)
+        self.log.debug('{0}'.format(message))
         return None
 
     def __cmp__(self, other):
@@ -102,7 +102,7 @@ class OIDPrefix(object):
             oid = other.oid
 
         else:
-            raise ValueError('Error comparing OIDPrefix to %d' % type(other))
+            raise ValueError('Error comparing OIDPrefix to {0}'.format(type(other)))
 
         if len(oid) != len(self.oid):
             return cmp(len(self.oid), len(oid))
@@ -171,18 +171,22 @@ class Item(OIDPrefix):
         if key in SNMP_DATA_TYPE_MAP.keys():
             self.key = key
         else:
-            raise SNMPError('Invalid item type: %s' % key)
+            raise SNMPError('Invalid item type: {0}'.format(key))
 
         if value is not None:
             try:
                 self.value = SNMP_DATA_TYPE_MAP[self.key](value)
             except:
-                raise SNMPError('Invalid %s item value "%s"' % (self.key, value))
+                raise SNMPError('Invalid {0} item value "{1}"'.format(self.key, value))
         else:
             self.value = None
 
     def __repr__(self):
-        return '%s %s %s' % (self.oid_string, self.key, self.value)
+        return '{0} {1} {2}'.format(
+            self.oid_string,
+            self.key,
+            self.value
+        )
 
     @property
     def get_response(self):
@@ -191,7 +195,7 @@ class Item(OIDPrefix):
         Strings required for formatted GET response
 
         """
-        return '%s\n%s\n%s' % (self.oid_string, self.key, self.value)
+        return '{0}\n{1}\n{2}'.format(self.oid_string, self.key, self.value)
 
     @property
     def next_response(self):
@@ -200,7 +204,7 @@ class Item(OIDPrefix):
         Strings required for formatted NEXT response
 
         """
-        return '%s\n%s\n%s' % (self.oid_string, self.key, self.value)
+        return '{0}\n{1}\n{2}'.format(self.oid_string, self.key, self.value)
 
     def check_length(self, value):
         """Check SET value length
@@ -291,10 +295,10 @@ class Tree(OIDPrefix):
 
     def relative_oid(self, oid):
         if oid == self.oid:
-            raise SNMPError('Attempt to get relative oid for tree root: %s' % self.oid)
+            raise SNMPError('Attempt to get relative oid for tree root: {0}'.format(self.oid))
 
         if oid[:len(self.oid)] != self.oid:
-            raise SNMPError('OID out of tree %s: %s' % (self.oidstring, oid))
+            raise SNMPError('OID out of tree {0}: {1}'.format(self.oidstring, oid))
 
         return oid[len(self.oid):]
 
@@ -313,7 +317,7 @@ class Tree(OIDPrefix):
             oid = other.oid
 
         else:
-            raise SNMPError('UNSUPPORTED MATCH TYPE: %s' % type(other))
+            raise SNMPError('UNSUPPORTED MATCH TYPE: {0}'.format(type(other)))
 
         if len(oid) < len(self.oid):
             return False
@@ -352,7 +356,7 @@ class Tree(OIDPrefix):
             raise SNMPError('Can only add OIDPrefix objects to tree')
 
         if not self.match(item):
-            raise SNMPError('OID prefix does not match: %s' % item.oid_string)
+            raise SNMPError('OID prefix does not match: {0}'.format(item.oid_string))
 
         for i, existing in enumerate(self.items):
 
@@ -363,7 +367,7 @@ class Tree(OIDPrefix):
                 return self.__register__(item, i, existing)
 
             if item == existing:
-                raise SNMPError('OID already registered: %s' % item.oid)
+                raise SNMPError('OID already registered: {0}'.format(item.oid))
 
         return self.__register__(item, len(self.items))
 
@@ -375,14 +379,14 @@ class Tree(OIDPrefix):
 
         """
         if key not in SNMP_DATA_TYPE_MAP:
-            raise SNMPError('Invalid key %s' % key)
+            raise SNMPError('Invalid key {0}'.format(key))
 
         if not isinstance(values, list):
-            raise SNMPError('Values must be a list of simple values: %s' % values)
+            raise SNMPError('Values must be a list of simple values: {0}'.format(values))
 
         if index is None:
             if self.items:
-                self.log.debug('Lookup relative OID from %s' % self.items[-1])
+                self.log.debug('Lookup relative OID from {0}'.format(self.items[-1]))
                 index = self.relative_oid(self.items[-1].oid)
                 index[-1] += 1
             else:
@@ -424,15 +428,15 @@ class Tree(OIDPrefix):
                     prefix['oid'] = self.__format_oid__(prefix['oid'])
                     self.relative_oid(prefix['oid'])
                 else:
-                    raise ValueError('Missing oid: %s' % prefix)
+                    raise ValueError('Missing oid: {0}'.format(prefix))
 
                 if 'key' in prefix:
                     try:
                         callback = SNMP_DATA_TYPE_MAP[prefix['key']]
                     except KeyError:
-                        raise ValueError('Invalid prefix key %s' % prefix)
+                        raise ValueError('Invalid prefix key {0}'.format(prefix))
                 else:
-                    raise ValueError('Missing key: %s' % prefix)
+                    raise ValueError('Missing key: {0}'.format(prefix))
 
                 if 'readonly' in prefix:
                     prefix['readonly'] = prefix['readonly'] and True or False
@@ -446,13 +450,13 @@ class Tree(OIDPrefix):
                         raise ValueError('Items not a list')
 
                     if len(items)==0 or length is not None and len(items) != length:
-                        raise ValueError('Invalid values list length: %s' % prefix)
+                        raise ValueError('Invalid values list length: {0}'.format(prefix))
 
                 else:
-                    raise ValueError('Missing values: %s' % prefix)
+                    raise ValueError('Missing values: {0}'.format(prefix))
 
         except ValueError:
-            raise SNMPError('Invalid prefixes format: %s' % prefixes)
+            raise SNMPError('Invalid prefixes format: {0}'.format(prefixes))
 
         for prefix in prefixes:
             tree = self.add(Tree(prefix['oid']))
@@ -468,10 +472,10 @@ class Tree(OIDPrefix):
             formatted = self.__format_oid__(oid)
             oidstring = self.__format_oid_string__(oid)
         except ValueError:
-            return self.__invalid__('GET invalid OID %s' % oid)
+            return self.__invalid__('GET invalid OID {0}'.format(oid))
 
         if formatted == self.oid:
-            return self.__invalid__('GET for OID tree root %s' % oidstring)
+            return self.__invalid__('GET for OID tree root {0}'.format(oidstring))
 
         try:
             entry = self.item_index[oidstring]
@@ -483,7 +487,7 @@ class Tree(OIDPrefix):
                 if entry.value is not None:
                     return entry
                 else:
-                    return __invalid__('Tree %s entry %s not initialized' % (self, entry))
+                    return __invalid__('Tree {0} entry {1} not initialized'.format(self, entry))
 
         except KeyError:
             pass
@@ -507,7 +511,7 @@ class Tree(OIDPrefix):
 
         if formatted == self.oid:
             if not len(self.items):
-                return self.__invalid__('NEXT for root of empty tree %s' % self.oidstring)
+                return self.__invalid__('NEXT for root of empty tree {0}'.format(self.oidstring))
             next = self.items[0]
 
             if isinstance(next, Tree):
@@ -517,7 +521,7 @@ class Tree(OIDPrefix):
                 return next
 
             else:
-                raise SNMPError('ERROR getting NEXT from %s' % next)
+                raise SNMPError('ERROR getting NEXT from {0}'.format(next))
 
         for tree in self.subtrees:
             if tree.match(oid):
@@ -526,7 +530,7 @@ class Tree(OIDPrefix):
         try:
             index = self.__format_oid_string__(oid)
         except ValueError:
-            return self.__invalid__('NEXT invalid OID %s' % oid)
+            return self.__invalid__('NEXT invalid OID {0}'.format(oid))
 
         try:
             entry = self.item_index[index]
@@ -534,7 +538,7 @@ class Tree(OIDPrefix):
             if self.items:
                 return self.items[0]
             else:
-                return self.__invalid__('NEXT unknown OID %s' % oid)
+                return self.__invalid__('NEXT unknown OID {0}'.format(oid))
 
         if isinstance(entry, Tree):
             return entry.NEXT(oid)
@@ -547,7 +551,7 @@ class Tree(OIDPrefix):
         elif self.next:
             return self.next.NEXT(oid)
         else:
-            self.__invalid__('NEXT unknown OID %s' % oid)
+            self.__invalid__('NEXT unknown OID {0}'.format(oid))
 
     def SET(self, oid, value):
         """Set OID value
@@ -561,7 +565,11 @@ class Tree(OIDPrefix):
             return 'not-writable'
 
         if not hasattr(entry, 'value') or entry.readonly:
-            self.log.debug('error writing entry %s: %s %s' % (entry, type(entry), hasattr(entry, 'value')))
+            self.log.debug('error writing entry {0}: {1} {2}'.format(
+                entry,
+                type(entry),
+                hasattr(entry, 'value'))
+            )
             return 'not-writable'
 
         try:
@@ -652,8 +660,8 @@ class SNMPAgent(Script):
         """
         try:
             return self.tree.GET(oid)
-        except SNMPError, emsg:
-            self.log.debug(emsg)
+        except SNMPError as e:
+            self.log.debug(e)
             return None
 
     def NEXT(self, oid):
@@ -664,8 +672,8 @@ class SNMPAgent(Script):
         """
         try:
             return self.tree.NEXT(oid)
-        except SNMPError, emsg:
-            self.log.debug(emsg)
+        except SNMPError as e:
+            self.log.debug(e)
             return None
 
     def SET(self, oid, value):
@@ -710,18 +718,18 @@ class SNMPAgent(Script):
         elif self.args.get:
             entry = self.GET(self.args.get)
             if entry is not None:
-                sys.stdout.write('%s\n' % entry.get_response)
+                sys.stdout.write('{0}\n'.format(entry.get_response))
 
         elif self.args.next:
             entry = self.NEXT(self.args.next)
             if entry is not None:
-                sys.stdout.write('%s\n' % entry.next_response)
+                sys.stdout.write('{0}\n'.format(entry.next_response))
 
         if self.args.tree or self.args.get or self.args.next:
             self.exit(0)
 
         EOF = ''
-        self.log.debug('Starting SNMP agent for OID %s' % self.tree.oid)
+        self.log.debug('Starting SNMP agent for OID {0}'.format(self.tree.oid))
 
         while True:
             ready = select.select([sys.stdin], [], [], 0.2)[0]
@@ -765,19 +773,19 @@ class SNMPAgent(Script):
                     if value == EOF:
                         break
                     result = self.SET(oid, value)
-                    sys.stdout.write('%s\n' % result)
+                    sys.stdout.write('{0}\n'.format(result))
 
                 elif cmd == 'get':
                     entry = self.GET(oid)
                     if entry is not None:
-                        sys.stdout.write('%s\n' % entry.get_response)
+                        sys.stdout.write('{0}\n'.format(entry.get_response))
                     else:
                         sys.stdout.write('NONE\n')
 
                 elif cmd == 'getnext':
                     entry = self.NEXT(oid)
                     if entry is not None:
-                        sys.stdout.write('%s\n' % entry.next_response)
+                        sys.stdout.write('{0}\n'.format(entry.next_response))
                     else:
                         sys.stdout.write('NONE\n')
 
@@ -785,11 +793,11 @@ class SNMPAgent(Script):
                     self.log.debug('Unknown command (should be get/set/getnext)')
                 sys.stdout.flush()
 
-            except IOError, emsg:
+            except IOError as e:
                 # we get EINTR with SIGHUP and we can ignore it
-                if emsg[0]==errno.EINTR:
+                if e[0]==errno.EINTR:
                     continue
-                self.log.debug('IOError: %s' % emsg[1])
+                self.log.debug('IOError: {0}'.format(e))
                 return
 
             except KeyboardInterrupt:

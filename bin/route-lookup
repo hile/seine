@@ -30,5 +30,5 @@ for address in args.addresses:
             self.log.debug('No route to %s' % address)
             script.exit(1)
 
-    except RoutingTableError,emsg:
-        script.message('Error looking up best route to %s: %s' % (address,emsg))
+    except RoutingTableError as e:
+        script.message('Error looking up best route to %s: %s' % (address,e))
